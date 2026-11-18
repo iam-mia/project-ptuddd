@@ -94,6 +94,7 @@
 
 ## 4. Lưu Ý Khi Kiểm Thử (Test) Độc Lập
 
+- Mỗi nhiệm vụ/chức năng hoàn thành đều tạo 1 commit riêng thay vì làm tất cả module rồi mới commit 1 lần
 - Trước khi merge vào `nhom/nhom13-65ktpm`, mỗi thành viên tự chạy `flutter analyze` để đảm bảo **0 errors, 0 warnings** trong phần code của mình.
 - Sử dụng **Seed Data** trên Supabase (do Trưởng nhóm tạo sẵn ở Phase 0) để test độc lập từng module mà không cần chờ thành viên khác hoàn thành UI.
 
