@@ -72,7 +72,7 @@
   - Tạo phòng học (`study_rooms`), sinh mã phòng (`Room Code`), gửi/nhận/chấp nhận lời mời (`room_invitations`), tham gia bằng mã phòng, quản lý thành viên (`room_members`).
   - Xây dựng **Màn hình Chi tiết Phòng học (`StudyRoomDetailScreen`)** dạng TabBar/Shell gồm 4 tab: *Tổng quan/Thành viên* (của Phước), *Tài liệu* (nhúng `RoomDocumentsTab`), *Ôn tập* (nhúng `RoomPracticeTab`), *Buổi học* (nhúng `RoomSessionsTab`).
 
-### 3. Ngô Tuấn Anh (Thành viên 2 - 2251170570)
+### 3. Ngô Tuấn Anh (Thành viên 2 - 2351170570)
 - **Nhiệm vụ:** **Module 3 (`DOC` - Kho học liệu)** + **Module 4 (`AI` - Tạo nội dung ôn tập)**.
 - **Thư mục sở hữu:** `lib/features/documents/`, `lib/features/ai_generator/`, `supabase/functions/generate-learning-content/`.
 - **Đầu việc chính:**
