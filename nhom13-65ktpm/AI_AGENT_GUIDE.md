@@ -98,3 +98,21 @@
 - Trước khi merge vào `nhom/nhom13-65ktpm`, mỗi thành viên tự chạy `flutter analyze` để đảm bảo **0 errors, 0 warnings** trong phần code của mình.
 - Sử dụng **Seed Data** trên Supabase (do Trưởng nhóm tạo sẵn ở Phase 0) để test độc lập từng module mà không cần chờ thành viên khác hoàn thành UI.
 
+---
+
+## 5. Bảo Mật & Lưu Ý Quan Trọng Cho AI Agent
+
+- **Tuyệt đối không commit bí mật (Secrets):**
+  - Không bao giờ commit file `.env`, `google-services.json` chứa key nhạy cảm, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, hoặc bất kỳ token/mật khẩu nào lên Git.
+  - Luôn kiểm tra `.gitignore` và chỉ commit `.env.example` (chỉ chứa tên biến, không chứa giá trị thật).
+- **Không hardcode key trong mã nguồn:**
+  - Mọi cấu hình nhạy cảm trên Flutter phải đọc qua `flutter_dotenv` (`dotenv.maybeGet(...)`).
+  - `GEMINI_API_KEY` chỉ được lưu trong **Supabase Edge Function Secrets**, tuyệt đối không đặt trong code Flutter Client.
+- **Thao tác Git an toàn:**
+  - Không dùng `git add -A` hoặc `git add .` một cách mù quáng ở thư mục gốc; luôn kiểm tra `git status` trước khi commit để chắc chắn không dính file rác hoặc file `.env`.
+  - Không dùng `git push --force` lên nhánh chung `nhom/nhom13-65ktpm`.
+- **Chất lượng code & Kiểm thử:**
+  - Luôn chạy `flutter analyze` và `flutter test` trước khi commit.
+  - Không tự ý xóa hoặc làm yếu (relax) test/assertion chỉ để pass.
+
+
