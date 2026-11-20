@@ -2,6 +2,18 @@
 
 Tài liệu này dùng để kiểm thử thủ công các luồng nghiệp vụ đã hoàn thiện trên thiết bị thật / trình duyệt.
 
+## Tài Khoản Test Mẫu (Seed Data)
+
+> Chạy file `supabase/migrations/20261120000002_seed_users.sql` trên Supabase SQL Editor để tạo sẵn 3 tài khoản dưới đây:
+
+| Vai trò | Email | Mật khẩu | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **Sinh viên 1** | `mentor01.tlu@gmail.com` | `123456` | MSV: `2351170574` (Phùng Minh Anh) |
+| **Sinh viên 2** | `mentee01.tlu@gmail.com` | `123456` | MSV: `2251172456` (Phạm Văn Phước) |
+| **Admin** | `admin.tlu@gmail.com` | `123456` | Quyền giám sát (`role = admin`) |
+
+---
+
 ## 1. Luồng Tài khoản & Hồ sơ (`ACC-01` → `ACC-03`)
 1. **Đăng ký mới:** Nhập Họ tên, Mã sinh viên (10 chữ số, thử nhập sai 5 số để kiểm tra báo lỗi), Email hợp lệ, Mật khẩu $\ge 6$ ký tự $\rightarrow$ Bấm **Đăng ký**.
 2. **Đăng nhập:** Dùng tài khoản vừa tạo (hoặc tạo trên Supabase Dashboard) đăng nhập $\rightarrow$ Kiểm tra tự động chuyển vào màn hình **StudentHomeScreen** (không còn màn hình trống).
