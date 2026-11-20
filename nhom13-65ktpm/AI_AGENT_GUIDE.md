@@ -114,8 +114,8 @@
   - Không dùng `git push --force` lên nhánh chung `nhom/nhom13-65ktpm`.
 - **Chất lượng code & Kiểm thử:**
   - **Bắt buộc đọc [BUSINESS_RULES.md](./BUSINESS_RULES.md) và [ERROR_NOTES.md](./ERROR_NOTES.md)** trước khi code để đảm bảo đúng nghiệp vụ và không lặp lại lỗi cũ.
+  - **Bắt buộc viết Unit/Widget Test** cho mỗi tính năng/luồng mới và chạy `flutter analyze` + `flutter test` đạt 0 lỗi trước khi commit.
   - Khi phát hiện lỗi mới trong quá trình làm việc, ghi ngắn gọn vào `ERROR_NOTES.md`.
-  - Luôn chạy `flutter analyze` và `flutter test` trước khi commit.
   - Không tự ý xóa hoặc làm yếu (relax) test/assertion chỉ để pass.
 
 
