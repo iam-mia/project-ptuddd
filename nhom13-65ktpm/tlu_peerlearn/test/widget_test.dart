@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tlu_peerlearn/features/auth_profile/domain/program_registration.dart';
 import 'package:tlu_peerlearn/features/auth_profile/domain/user_profile.dart';
+import 'package:tlu_peerlearn/features/auth_profile/presentation/course_registration_screen.dart';
 import 'package:tlu_peerlearn/features/auth_profile/presentation/login_screen.dart';
 import 'package:tlu_peerlearn/features/auth_profile/presentation/profile_screen.dart';
 import 'package:tlu_peerlearn/features/auth_profile/presentation/register_screen.dart';
+import 'package:tlu_peerlearn/features/auth_profile/presentation/widgets/schedule_slot_picker.dart';
 
 void main() {
   testWidgets('LoginScreen validates empty email and password', (tester) async {
@@ -60,5 +63,47 @@ void main() {
     await tester.pump();
 
     expect(find.text('Vui lòng nhập họ và tên'), findsOneWidget);
+  });
+
+  testWidgets('ScheduleSlotPicker toggles slot index 0..20', (tester) async {
+    int? toggled;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ScheduleSlotPicker(
+            selectedSlots: const {0, 4},
+            onToggleSlot: (idx) => toggled = idx,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Khung lịch rảnh trong tuần (2/21 buổi)'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('slot_2')));
+    expect(toggled, 2);
+  });
+
+  testWidgets('CourseRegistrationScreen validates mentor grade',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: CourseRegistrationScreen(
+            initialCourses: [
+              Course(id: 'c1', code: 'CSE204', name: 'Cơ sở dữ liệu'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Mentor'));
+    await tester.pump();
+
+    await tester.ensureVisible(find.text('Lưu đăng ký'));
+    await tester.tap(find.text('Lưu đăng ký'));
+    await tester.pump();
+
+    expect(find.text('Nhập điểm hợp lệ (0 - 10)'), findsOneWidget);
   });
 }
