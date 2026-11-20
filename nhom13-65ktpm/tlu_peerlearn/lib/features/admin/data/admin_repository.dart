@@ -28,17 +28,17 @@ class AdminRepository {
 
   Future<AdminOverviewStats> getOverviewStats() async {
     final mentorsRes = await _client
-        .from('program_registrations')
+        .from('ck_program_registrations')
         .select('id')
         .eq('role', 'mentor');
     final menteesRes = await _client
-        .from('program_registrations')
+        .from('ck_program_registrations')
         .select('id')
         .eq('role', 'mentee');
-    final roomsRes = await _client.from('study_rooms').select('id');
-    final sessionsRes = await _client.from('tutoring_sessions').select('id');
-    final setsRes = await _client.from('generated_sets').select('id');
-    final attemptsRes = await _client.from('quiz_attempts').select('id');
+    final roomsRes = await _client.from('ck_study_rooms').select('id');
+    final sessionsRes = await _client.from('ck_tutoring_sessions').select('id');
+    final setsRes = await _client.from('ck_generated_sets').select('id');
+    final attemptsRes = await _client.from('ck_quiz_attempts').select('id');
 
     return AdminOverviewStats(
       totalMentors: (mentorsRes as List).length,
@@ -52,8 +52,8 @@ class AdminRepository {
 
   Future<List<AdminRoomSummary>> getRooms() async {
     final data = await _client
-        .from('study_rooms')
-        .select('id, name, room_code, is_open, courses(name), profiles(full_name)')
+        .from('ck_study_rooms')
+        .select('id, name, room_code, is_open, ck_courses(name), ck_profiles(full_name)')
         .order('created_at', ascending: false);
 
     return (data as List<dynamic>)
@@ -63,12 +63,12 @@ class AdminRepository {
 
   Future<List<AdminSessionLog>> getSessionLogs() async {
     final data = await _client
-        .from('tutoring_sessions')
+        .from('ck_tutoring_sessions')
         .select(
           'id, title, scheduled_start, guided_content, status, '
-          'study_rooms(name), profiles(full_name), '
-          'session_attendances(mentor_marked_status, mentee_confirmed, profiles(full_name)), '
-          'session_evidences(image_url)',
+          'ck_study_rooms(name), ck_profiles(full_name), '
+          'ck_session_attendances(mentor_marked_status, mentee_confirmed, ck_profiles(full_name)), '
+          'ck_session_evidences(image_url)',
         )
         .order('scheduled_start', ascending: false);
 

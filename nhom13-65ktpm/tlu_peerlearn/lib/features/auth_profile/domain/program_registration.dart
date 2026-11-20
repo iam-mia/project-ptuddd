@@ -47,7 +47,7 @@ class ProgramRegistration {
   });
 
   factory ProgramRegistration.fromJson(Map<String, dynamic> json) {
-    final course = json['courses'] as Map<String, dynamic>?;
+    final course = json['ck_courses'] as Map<String, dynamic>?;
     return ProgramRegistration(
       id: json['id'] as String,
       userId: json['user_id'] as String,

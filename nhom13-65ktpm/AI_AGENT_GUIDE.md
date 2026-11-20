@@ -22,7 +22,7 @@
      - `feat(<module>): <mô tả ngắn>` (VD: `feat(rom): implement compatibility scoring`)
      - `fix(<module>): <mô tả ngắn>`
      - `chore(<module>): <mô tả ngắn>`
-  4. Push nhánh con lên `origin` và tạo **Pull Request (PR) vào nhánh `nhom/nhom13-65ktpm`** (hoặc push thẳng nếu được trưởng nhóm cho phép).
+  4. **Bắt buộc** push nhánh con lên `origin` và tạo **Pull Request (PR) vào nhánh `nhom/nhom13-65ktpm`**. **Nghiêm cấm** push trực tiếp lên nhánh chung `nhom/nhom13-65ktpm` (trừ Trưởng nhóm khi hợp nhất PR).
   5. Khi hoàn thiện, **Trưởng nhóm** sẽ tạo Pull Request từ nhánh `nhom/nhom13-65ktpm` lên nhánh `main` của repo giảng viên (`upstream`).
 
 ---

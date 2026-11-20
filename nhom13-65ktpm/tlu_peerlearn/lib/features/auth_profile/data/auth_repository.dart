@@ -50,7 +50,7 @@ class AuthRepository {
 
     final user = response.user;
     if (user != null) {
-      await _client.from('profiles').upsert({
+      await _client.from('ck_profiles').upsert({
         'id': user.id,
         'email': email.trim(),
         'full_name': fullName.trim(),
@@ -70,7 +70,7 @@ class AuthRepository {
     if (user == null) return null;
 
     final data = await _client
-        .from('profiles')
+        .from('ck_profiles')
         .select()
         .eq('id', user.id)
         .maybeSingle();
@@ -88,7 +88,7 @@ class AuthRepository {
     String? phone,
     String? avatarUrl,
   }) async {
-    await _client.from('profiles').update({
+    await _client.from('ck_profiles').update({
       'full_name': fullName.trim(),
       'student_id': studentId?.trim().isEmpty == true ? null : studentId?.trim(),
       'faculty': faculty?.trim().isEmpty == true ? null : faculty?.trim(),

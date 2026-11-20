@@ -25,7 +25,7 @@ class RegistrationRepository {
   RegistrationRepository(this._client);
 
   Future<List<Course>> getCourses() async {
-    final data = await _client.from('courses').select().order('code');
+    final data = await _client.from('ck_courses').select().order('code');
     return (data as List<dynamic>)
         .map((e) => Course.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -33,8 +33,8 @@ class RegistrationRepository {
 
   Future<List<ProgramRegistration>> getMyRegistrations(String userId) async {
     final data = await _client
-        .from('program_registrations')
-        .select('*, courses(code, name)')
+        .from('ck_program_registrations')
+        .select('*, ck_courses(code, name)')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
@@ -52,7 +52,7 @@ class RegistrationRepository {
     int maxMentees = 5,
     required List<int> availableSlots,
   }) async {
-    await _client.from('program_registrations').upsert(
+    await _client.from('ck_program_registrations').upsert(
       {
         'user_id': userId,
         'course_id': courseId,
@@ -69,7 +69,7 @@ class RegistrationRepository {
 
   Future<void> deleteRegistration(String registrationId) async {
     await _client
-        .from('program_registrations')
+        .from('ck_program_registrations')
         .delete()
         .eq('id', registrationId);
   }

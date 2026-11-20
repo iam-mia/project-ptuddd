@@ -34,8 +34,8 @@ class AdminRoomSummary {
   });
 
   factory AdminRoomSummary.fromJson(Map<String, dynamic> json) {
-    final course = json['courses'] as Map<String, dynamic>?;
-    final mentor = json['profiles'] as Map<String, dynamic>?;
+    final course = json['ck_courses'] as Map<String, dynamic>?;
+    final mentor = json['ck_profiles'] as Map<String, dynamic>?;
     return AdminRoomSummary(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -59,7 +59,7 @@ class AdminSessionAttendance {
   });
 
   factory AdminSessionAttendance.fromJson(Map<String, dynamic> json) {
-    final profile = json['profiles'] as Map<String, dynamic>?;
+    final profile = json['ck_profiles'] as Map<String, dynamic>?;
     return AdminSessionAttendance(
       menteeName: profile?['full_name'] as String? ?? 'Sinh viên',
       mentorMarkedStatus: json['mentor_marked_status'] as String? ?? 'absent',
@@ -92,10 +92,10 @@ class AdminSessionLog {
   });
 
   factory AdminSessionLog.fromJson(Map<String, dynamic> json) {
-    final room = json['study_rooms'] as Map<String, dynamic>?;
-    final mentor = json['profiles'] as Map<String, dynamic>?;
-    final rawAttendances = json['session_attendances'] as List<dynamic>? ?? [];
-    final rawEvidences = json['session_evidences'] as List<dynamic>? ?? [];
+    final room = json['ck_study_rooms'] as Map<String, dynamic>?;
+    final mentor = json['ck_profiles'] as Map<String, dynamic>?;
+    final rawAttendances = json['ck_session_attendances'] as List<dynamic>? ?? [];
+    final rawEvidences = json['ck_session_evidences'] as List<dynamic>? ?? [];
 
     return AdminSessionLog(
       id: json['id'] as String,
