@@ -83,11 +83,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _studentIdController,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Mã sinh viên',
+                    labelText: 'Mã sinh viên *',
                     prefixIcon: Icon(Icons.badge_outlined),
                     border: OutlineInputBorder(),
                   ),
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty) return 'Vui lòng nhập mã sinh viên';
+                    if (!RegExp(r'^\d{10}$').hasMatch(v)) {
+                      return 'Mã sinh viên phải gồm đúng 10 chữ số';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

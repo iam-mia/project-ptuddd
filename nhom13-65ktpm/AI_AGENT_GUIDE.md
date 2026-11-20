@@ -112,6 +112,8 @@
   - Không dùng `git add -A` hoặc `git add .` một cách mù quáng ở thư mục gốc; luôn kiểm tra `git status` trước khi commit để chắc chắn không dính file rác hoặc file `.env`.
   - Không dùng `git push --force` lên nhánh chung `nhom/nhom13-65ktpm`.
 - **Chất lượng code & Kiểm thử:**
+  - **Bắt buộc đọc [BUSINESS_RULES.md](./BUSINESS_RULES.md) và [ERROR_NOTES.md](./ERROR_NOTES.md)** trước khi code để đảm bảo đúng nghiệp vụ và không lặp lại lỗi cũ.
+  - Khi phát hiện lỗi mới trong quá trình làm việc, ghi ngắn gọn vào `ERROR_NOTES.md`.
   - Luôn chạy `flutter analyze` và `flutter test` trước khi commit.
   - Không tự ý xóa hoặc làm yếu (relax) test/assertion chỉ để pass.
 
