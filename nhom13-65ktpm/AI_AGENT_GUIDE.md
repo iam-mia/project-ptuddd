@@ -12,7 +12,7 @@
 - **Nhánh tích hợp chính của nhóm:** `nhom/nhom13-65ktpm` (trên repo đã fork của nhóm).
   - **Nghiêm cấm** commit/push trực tiếp lên nhánh `main`.
 - **Quy trình làm việc của từng thành viên:**
-  1. Pull code mới nhất từ nhánh `nhom/nhom13-65ktpm`.
+  1. **Luôn `git fetch origin` và `git pull --rebase origin nhom/nhom13-65ktpm`** trước khi bắt đầu làm việc và trước mỗi lần `git push` để tránh lỗi `rejected (fetch first)`.
   2. Tạo nhánh con riêng cho tính năng của mình:
      - `feat/minhanh-acc-adm` (Phùng Minh Anh)
      - `feat/phuoc-rom` (Phạm Văn Phước)
