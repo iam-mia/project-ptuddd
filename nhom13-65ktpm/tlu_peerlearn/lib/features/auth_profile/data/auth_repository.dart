@@ -1,0 +1,82 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/supabase/supabase_provider.dart';
+import '../domain/user_profile.dart';
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository(ref.watch(supabaseClientProvider));
+});
+
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  return ref.watch(authRepositoryProvider).authStateChanges;
+});
+
+final currentProfileProvider = FutureProvider<UserProfile?>((ref) async {
+  // Re-evaluate whenever auth state changes
+  ref.watch(authStateProvider);
+  return ref.watch(authRepositoryProvider).getCurrentProfile();
+});
+
+class AuthRepository {
+  final SupabaseClient _client;
+
+  AuthRepository(this._client);
+
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
+
+  User? get currentUser => _client.auth.currentUser;
+
+  Future<AuthResponse> signIn({
+    required String email,
+    required String password,
+  }) async {
+    return _client.auth.signInWithPassword(
+      email: email.trim(),
+      password: password,
+    );
+  }
+
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    String? studentId,
+  }) async {
+    final response = await _client.auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: {'full_name': fullName.trim()},
+    );
+
+    final user = response.user;
+    if (user != null) {
+      await _client.from('profiles').upsert({
+        'id': user.id,
+        'email': email.trim(),
+        'full_name': fullName.trim(),
+        'student_id': studentId?.trim().isEmpty == true ? null : studentId?.trim(),
+        'role': 'student',
+      });
+    }
+    return response;
+  }
+
+  Future<void> signOut() async {
+    await _client.auth.signOut();
+  }
+
+  Future<UserProfile?> getCurrentProfile() async {
+    final user = currentUser;
+    if (user == null) return null;
+
+    final data = await _client
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return UserProfile.fromJson(data);
+  }
+}
+
