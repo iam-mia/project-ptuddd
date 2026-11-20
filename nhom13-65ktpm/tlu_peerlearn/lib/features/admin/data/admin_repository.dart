@@ -16,6 +16,11 @@ final adminRoomsProvider = FutureProvider<List<AdminRoomSummary>>((ref) async {
   return ref.watch(adminRepositoryProvider).getRooms();
 });
 
+final adminSessionLogsProvider =
+    FutureProvider<List<AdminSessionLog>>((ref) async {
+  return ref.watch(adminRepositoryProvider).getSessionLogs();
+});
+
 class AdminRepository {
   final SupabaseClient _client;
 
@@ -53,6 +58,22 @@ class AdminRepository {
 
     return (data as List<dynamic>)
         .map((e) => AdminRoomSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<AdminSessionLog>> getSessionLogs() async {
+    final data = await _client
+        .from('tutoring_sessions')
+        .select(
+          'id, title, scheduled_start, guided_content, status, '
+          'study_rooms(name), profiles(full_name), '
+          'session_attendances(mentor_marked_status, mentee_confirmed, profiles(full_name)), '
+          'session_evidences(image_url)',
+        )
+        .order('scheduled_start', ascending: false);
+
+    return (data as List<dynamic>)
+        .map((e) => AdminSessionLog.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 }

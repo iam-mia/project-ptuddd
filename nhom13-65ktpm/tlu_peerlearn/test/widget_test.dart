@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tlu_peerlearn/features/admin/domain/admin_models.dart';
 import 'package:tlu_peerlearn/features/admin/presentation/admin_dashboard_screen.dart';
+import 'package:tlu_peerlearn/features/admin/presentation/admin_session_logs_screen.dart';
 import 'package:tlu_peerlearn/features/auth_profile/domain/program_registration.dart';
 import 'package:tlu_peerlearn/features/auth_profile/domain/user_profile.dart';
 import 'package:tlu_peerlearn/features/auth_profile/presentation/course_registration_screen.dart';
@@ -145,6 +146,11 @@ void main() {
     );
 
     expect(find.text('12'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('CSDL - Nhóm 01'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('CSDL - Nhóm 01'), findsOneWidget);
     expect(find.text('Java - Nhóm 02'), findsOneWidget);
 
@@ -153,5 +159,42 @@ void main() {
 
     expect(find.text('CSDL - Nhóm 01'), findsOneWidget);
     expect(find.text('Java - Nhóm 02'), findsNothing);
+  });
+
+  testWidgets('AdminSessionLogsScreen displays attendance comparison',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: AdminSessionLogsScreen(
+            initialLogs: [
+              AdminSessionLog(
+                id: 's1',
+                title: 'Ôn tập JOIN',
+                roomName: 'CSDL - Nhóm 01',
+                mentorName: 'Phùng Minh Anh',
+                scheduledStart: DateTime(2026, 11, 20, 9, 0),
+                guidedContent: 'Hướng dẫn LEFT JOIN và INNER JOIN',
+                attendances: const [
+                  AdminSessionAttendance(
+                    menteeName: 'Phạm Văn Phước',
+                    mentorMarkedStatus: 'present',
+                    menteeConfirmed: true,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Ôn tập JOIN'), findsOneWidget);
+    await tester.tap(find.text('Ôn tập JOIN'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Phạm Văn Phước'), findsOneWidget);
+    expect(find.text('Có mặt'), findsOneWidget);
+    expect(find.text('Đã xác nhận'), findsOneWidget);
   });
 }
