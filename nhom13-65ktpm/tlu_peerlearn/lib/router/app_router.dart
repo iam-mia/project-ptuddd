@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth_profile/data/auth_repository.dart';
 import '../features/auth_profile/presentation/login_screen.dart';
+import '../features/auth_profile/presentation/profile_screen.dart';
 import '../features/auth_profile/presentation/register_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -45,6 +46,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           title: 'Admin - TLU PeerLearn',
         ),
       ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
     ],
   );
 });
@@ -59,6 +64,10 @@ class _RoleHomePlaceholder extends ConsumerWidget {
       appBar: AppBar(
         title: Text(title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push('/profile'),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => ref.read(authRepositoryProvider).signOut(),

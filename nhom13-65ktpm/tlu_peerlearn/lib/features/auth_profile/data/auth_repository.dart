@@ -78,5 +78,25 @@ class AuthRepository {
     if (data == null) return null;
     return UserProfile.fromJson(data);
   }
+
+  Future<void> updateProfile({
+    required String userId,
+    required String fullName,
+    String? studentId,
+    String? faculty,
+    String? className,
+    String? phone,
+    String? avatarUrl,
+  }) async {
+    await _client.from('profiles').update({
+      'full_name': fullName.trim(),
+      'student_id': studentId?.trim().isEmpty == true ? null : studentId?.trim(),
+      'faculty': faculty?.trim().isEmpty == true ? null : faculty?.trim(),
+      'class_name': className?.trim().isEmpty == true ? null : className?.trim(),
+      'phone': phone?.trim().isEmpty == true ? null : phone?.trim(),
+      'avatar_url': avatarUrl?.trim().isEmpty == true ? null : avatarUrl?.trim(),
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', userId);
+  }
 }
 
