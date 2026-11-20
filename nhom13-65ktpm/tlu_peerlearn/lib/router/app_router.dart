@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/admin/presentation/admin_dashboard_screen.dart';
 import '../features/auth_profile/data/auth_repository.dart';
 import '../features/auth_profile/presentation/course_registration_screen.dart';
 import '../features/auth_profile/presentation/login_screen.dart';
@@ -43,9 +44,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin',
-        builder: (context, state) => const _RoleHomePlaceholder(
-          title: 'Admin - TLU PeerLearn',
-        ),
+        builder: (context, state) => const AdminDashboardScreen(),
       ),
       GoRoute(
         path: '/profile',

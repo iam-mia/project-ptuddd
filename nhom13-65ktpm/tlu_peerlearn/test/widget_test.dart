@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tlu_peerlearn/features/admin/domain/admin_models.dart';
+import 'package:tlu_peerlearn/features/admin/presentation/admin_dashboard_screen.dart';
 import 'package:tlu_peerlearn/features/auth_profile/domain/program_registration.dart';
 import 'package:tlu_peerlearn/features/auth_profile/domain/user_profile.dart';
 import 'package:tlu_peerlearn/features/auth_profile/presentation/course_registration_screen.dart';
@@ -105,5 +107,51 @@ void main() {
     await tester.pump();
 
     expect(find.text('Nhập điểm hợp lệ (0 - 10)'), findsOneWidget);
+  });
+
+  testWidgets('AdminDashboardScreen displays stats and filters rooms',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: AdminDashboardScreen(
+            initialStats: AdminOverviewStats(
+              totalMentors: 4,
+              totalMentees: 12,
+              totalRooms: 3,
+              totalSessions: 5,
+              totalGeneratedSets: 8,
+              totalQuizAttempts: 20,
+            ),
+            initialRooms: [
+              AdminRoomSummary(
+                id: 'r1',
+                name: 'CSDL - Nhóm 01',
+                roomCode: 'CSDL01',
+                courseName: 'Cơ sở dữ liệu',
+                mentorName: 'Phùng Minh Anh',
+              ),
+              AdminRoomSummary(
+                id: 'r2',
+                name: 'Java - Nhóm 02',
+                roomCode: 'JAVA02',
+                courseName: 'Lập trình Java',
+                mentorName: 'Ngô Tuấn Anh',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('CSDL - Nhóm 01'), findsOneWidget);
+    expect(find.text('Java - Nhóm 02'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'CSDL');
+    await tester.pump();
+
+    expect(find.text('CSDL - Nhóm 01'), findsOneWidget);
+    expect(find.text('Java - Nhóm 02'), findsNothing);
   });
 }
