@@ -105,9 +105,10 @@
 - **Tuyệt đối không commit bí mật (Secrets):**
   - Không bao giờ commit file `.env`, `google-services.json` chứa key nhạy cảm, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, hoặc bất kỳ token/mật khẩu nào lên Git.
   - Luôn kiểm tra `.gitignore` và chỉ commit `.env.example` (chỉ chứa tên biến, không chứa giá trị thật).
-- **Không hardcode key trong mã nguồn:**
+- **Không hardcode key & Không tự ý fake cấu hình:**
   - Mọi cấu hình nhạy cảm trên Flutter phải đọc qua `flutter_dotenv` (`dotenv.maybeGet(...)`).
   - `GEMINI_API_KEY` chỉ được lưu trong **Supabase Edge Function Secrets**, tuyệt đối không đặt trong code Flutter Client.
+  - Khi một tính năng cần thông tin/cấu hình từ phía người dùng để chạy thật (như `.env` chứa `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, hoặc tài khoản đăng nhập), **Agent phải yêu cầu thành viên tự điền/cung cấp**, tuyệt đối không tự ý fake dữ liệu hay bypass luồng thật.
 - **Thao tác Git an toàn:**
   - Không dùng `git add -A` hoặc `git add .` một cách mù quáng ở thư mục gốc; luôn kiểm tra `git status` trước khi commit để chắc chắn không dính file rác hoặc file `.env`.
   - Không dùng `git push --force` lên nhánh chung `nhom/nhom13-65ktpm`.
