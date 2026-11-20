@@ -118,29 +118,24 @@ class _GenerateContentDialogState extends State<GenerateContentDialog> {
 
             // Content Type
             const Text('Loại nội dung ôn tập:', style: TextStyle(fontWeight: FontWeight.w600)),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    dense: true,
-                    title: const Text('Trắc nghiệm (Quiz)'),
-                    value: 'quiz',
-                    groupValue: _contentType,
-                    onChanged: (v) => setState(() => _contentType = v!),
-                  ),
+            const SizedBox(height: 6),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment<String>(
+                  value: 'quiz',
+                  label: Text('Trắc nghiệm (Quiz)'),
+                  icon: Icon(Icons.quiz_outlined),
                 ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    dense: true,
-                    title: const Text('Flashcard'),
-                    value: 'flashcard',
-                    groupValue: _contentType,
-                    onChanged: (v) => setState(() => _contentType = v!),
-                  ),
+                ButtonSegment<String>(
+                  value: 'flashcard',
+                  label: Text('Flashcard'),
+                  icon: Icon(Icons.style_outlined),
                 ),
               ],
+              selected: {_contentType},
+              onSelectionChanged: (set) => setState(() => _contentType = set.first),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
             // Count slider (5-20)
             Row(

@@ -45,6 +45,7 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
   }
 
   Future<void> _confirmDelete(BuildContext context, DocumentItem doc) async {
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -67,12 +68,11 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
     if (confirmed == true && mounted) {
       final service = ref.read(documentServiceProvider);
       await service.deleteDocument(documentId: doc.id, fileUrl: doc.fileUrl);
+      if (!mounted) return;
       ref.invalidate(roomDocumentsProvider(widget.roomId));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã xóa tài liệu thành công')),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Đã xóa tài liệu thành công')),
+      );
     }
   }
 
