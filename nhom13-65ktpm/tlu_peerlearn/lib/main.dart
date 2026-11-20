@@ -11,7 +11,7 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {
-    // Allow running in environments without a local .env file
+    dotenv.loadFromString(envString: '', isOptional: true);
   }
 
   final supabaseUrl = dotenv.maybeGet('SUPABASE_URL') ?? '';
