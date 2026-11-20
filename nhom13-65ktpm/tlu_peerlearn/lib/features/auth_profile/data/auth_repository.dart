@@ -75,7 +75,17 @@ class AuthRepository {
         .eq('id', user.id)
         .maybeSingle();
 
-    if (data == null) return null;
+    if (data == null) {
+      final fallbackProfile = {
+        'id': user.id,
+        'email': user.email ?? '',
+        'full_name': (user.userMetadata?['full_name'] as String?) ??
+            (user.email?.split('@').first ?? 'Sinh viên'),
+        'role': 'student',
+      };
+      await _client.from('ck_profiles').upsert(fallbackProfile);
+      return UserProfile.fromJson(fallbackProfile);
+    }
     return UserProfile.fromJson(data);
   }
 

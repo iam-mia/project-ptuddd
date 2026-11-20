@@ -8,6 +8,7 @@ import '../features/auth_profile/presentation/course_registration_screen.dart';
 import '../features/auth_profile/presentation/login_screen.dart';
 import '../features/auth_profile/presentation/profile_screen.dart';
 import '../features/auth_profile/presentation/register_screen.dart';
+import '../features/auth_profile/presentation/student_home_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final profileAsync = ref.watch(currentProfileProvider);
@@ -39,9 +40,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/student',
-        builder: (context, state) => const _RoleHomePlaceholder(
-          title: 'Sinh viên - TLU PeerLearn',
-        ),
+        builder: (context, state) => const StudentHomeScreen(),
       ),
       GoRoute(
         path: '/admin',
@@ -62,32 +61,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-class _RoleHomePlaceholder extends ConsumerWidget {
-  final String title;
-  const _RoleHomePlaceholder({required this.title});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.app_registration),
-            onPressed: () => context.push('/registrations'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/profile'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
-          ),
-        ],
-      ),
-      body: Center(child: Text(title)),
-    );
-  }
-}
