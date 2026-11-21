@@ -117,5 +117,6 @@
   - **Bắt buộc viết Unit/Widget Test** cho mỗi tính năng/luồng mới và chạy `flutter analyze` + `flutter test` đạt 0 lỗi trước khi commit.
   - Khi phát hiện lỗi mới trong quá trình làm việc, ghi ngắn gọn vào `ERROR_NOTES.md`.
   - Không tự ý xóa hoặc làm yếu (relax) test/assertion chỉ để pass.
+  - Thực hiện đúng theo hướng dẫn
 
 
