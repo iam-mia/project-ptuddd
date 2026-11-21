@@ -86,10 +86,15 @@ class _QuestionEditDialogState extends State<QuestionEditDialog> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      Radio<int>(
-                        value: i,
-                        groupValue: _correctIndex,
-                        onChanged: (v) => setState(() => _correctIndex = v!),
+                      IconButton(
+                        tooltip: 'Chọn làm đáp án đúng',
+                        icon: Icon(
+                          _correctIndex == i
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          color: _correctIndex == i ? Colors.green : Colors.grey,
+                        ),
+                        onPressed: () => setState(() => _correctIndex = i),
                       ),
                       Expanded(
                         child: TextFormField(
