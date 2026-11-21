@@ -51,5 +51,23 @@ void main() {
       expect(set.isDraft, isTrue);
       expect(set.title, 'Bộ thẻ Dart');
     });
+
+    test('generateContent falls back safely to local generator when client is null', () async {
+      final service = AiGeneratorService(null);
+      final result = await service.generateContent(
+        roomId: 'r1',
+        createdBy: 'u1',
+        title: 'Đề ôn tập',
+        contentType: 'quiz',
+        count: 5,
+        difficulty: 'basic',
+        documentIds: ['doc1'],
+        documentContext: 'Dart và Flutter là nền tảng di động',
+      );
+
+      expect(result.set.isDraft, isTrue);
+      expect(result.questions?.length, 5);
+      expect(result.questions?.first.options.length, 4);
+    });
   });
 }
