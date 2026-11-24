@@ -24,7 +24,7 @@ void main() {
           id: 'q1',
           quizId: 'quiz1',
           questionText: 'Tính năng nào sau đây là của Dart?',
-          options: ['A. Null safety', 'B. Header files', 'C. Pointers', 'D. Multiple inheritance'],
+          options: ['Null safety', 'Header files', 'Pointers', 'Multiple inheritance'],
           correctIndex: 0,
           explanation: 'Dart hỗ trợ Sound Null Safety từ phiên bản 2.12',
         ),
