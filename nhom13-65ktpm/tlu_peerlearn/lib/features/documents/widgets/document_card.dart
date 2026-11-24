@@ -4,6 +4,7 @@ import '../models/document_item.dart';
 class DocumentCard extends StatelessWidget {
   final DocumentItem document;
   final VoidCallback? onTap;
+  final VoidCallback? onPreview;
   final VoidCallback? onDownload;
   final VoidCallback? onDelete;
   final bool showDelete;
@@ -12,6 +13,7 @@ class DocumentCard extends StatelessWidget {
     super.key,
     required this.document,
     this.onTap,
+    this.onPreview,
     this.onDownload,
     this.onDelete,
     this.showDelete = false,
@@ -115,6 +117,12 @@ class DocumentCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (onPreview != null)
+                    IconButton(
+                      icon: const Icon(Icons.visibility_outlined),
+                      tooltip: 'Xem trước',
+                      onPressed: onPreview,
+                    ),
                   if (onDownload != null)
                     IconButton(
                       icon: const Icon(Icons.download_rounded),
