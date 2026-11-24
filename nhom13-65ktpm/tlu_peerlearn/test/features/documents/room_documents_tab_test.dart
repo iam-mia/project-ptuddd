@@ -55,5 +55,10 @@ void main() {
 
     expect(find.text('Giao_trinh_Dart.pdf'), findsOneWidget);
     expect(find.text('Dart Cơ bản'), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Chi tiết tài liệu'), findsOneWidget);
   });
 }

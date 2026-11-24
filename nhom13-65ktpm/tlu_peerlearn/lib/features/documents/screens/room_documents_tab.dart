@@ -6,6 +6,7 @@ import '../services/document_service.dart';
 import '../widgets/document_card.dart';
 import '../widgets/document_quota_card.dart';
 import '../widgets/document_upload_dialog.dart';
+import 'document_preview_screen.dart';
 
 class RoomDocumentsTab extends ConsumerStatefulWidget {
   final String roomId;
@@ -233,6 +234,13 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
                         document: doc,
                         showDelete: canDelete,
                         onDelete: () => _confirmDelete(context, doc),
+                        onPreview: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => DocumentPreviewScreen(document: doc),
+                            ),
+                          );
+                        },
                         onTap: () {
                           // Toggle select for AI generation (max 2 docs BR-04)
                           setState(() {
