@@ -2,17 +2,17 @@ class AdminOverviewStats {
   final int totalMentors;
   final int totalMentees;
   final int totalRooms;
+  final int activeRooms;
   final int totalSessions;
-  final int totalGeneratedSets;
-  final int totalQuizAttempts;
+  final int completedSessions;
 
   const AdminOverviewStats({
     this.totalMentors = 0,
     this.totalMentees = 0,
     this.totalRooms = 0,
+    this.activeRooms = 0,
     this.totalSessions = 0,
-    this.totalGeneratedSets = 0,
-    this.totalQuizAttempts = 0,
+    this.completedSessions = 0,
   });
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../data/admin_repository.dart';
 import '../domain/admin_models.dart';
 
@@ -25,7 +26,10 @@ class _AdminSessionLogsScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('Nhật ký & Minh chứng Buổi học')),
-      body: Column(
+      body: ResponsiveContainer(
+        maxWidth: 960,
+        padding: EdgeInsets.zero,
+        child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -172,6 +176,7 @@ class _AdminSessionLogsScreenState
             ),
           ),
         ],
+      ),
       ),
     );
   }

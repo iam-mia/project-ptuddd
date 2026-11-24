@@ -35,18 +35,21 @@ class AdminRepository {
         .from('ck_program_registrations')
         .select('id')
         .eq('role', 'mentee');
-    final roomsRes = await _client.from('ck_study_rooms').select('id');
-    final sessionsRes = await _client.from('ck_tutoring_sessions').select('id');
-    final setsRes = await _client.from('ck_generated_sets').select('id');
-    final attemptsRes = await _client.from('ck_quiz_attempts').select('id');
+    final roomsRes = await _client.from('ck_study_rooms').select('id, is_open');
+    final sessionsRes =
+        await _client.from('ck_tutoring_sessions').select('id, status');
+
+    final rooms = roomsRes as List<dynamic>;
+    final sessions = sessionsRes as List<dynamic>;
 
     return AdminOverviewStats(
       totalMentors: (mentorsRes as List).length,
       totalMentees: (menteesRes as List).length,
-      totalRooms: (roomsRes as List).length,
-      totalSessions: (sessionsRes as List).length,
-      totalGeneratedSets: (setsRes as List).length,
-      totalQuizAttempts: (attemptsRes as List).length,
+      totalRooms: rooms.length,
+      activeRooms: rooms.where((r) => r['is_open'] == true).length,
+      totalSessions: sessions.length,
+      completedSessions:
+          sessions.where((s) => s['status'] == 'completed').length,
     );
   }
 

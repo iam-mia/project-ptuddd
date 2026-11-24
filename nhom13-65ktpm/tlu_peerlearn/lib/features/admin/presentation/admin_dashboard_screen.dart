@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../../auth_profile/data/auth_repository.dart';
 import '../data/admin_repository.dart';
 import '../domain/admin_models.dart';
@@ -52,55 +53,63 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ref.invalidate(adminOverviewStatsProvider);
           ref.invalidate(adminRoomsProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              'Tổng quan chương trình',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            statsAsync.when(
-              data: (stats) => GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.7,
-                children: [
-                  _StatCard(
-                      label: 'Mentor',
-                      value: '${stats.totalMentors}',
-                      icon: Icons.school_outlined),
-                  _StatCard(
-                      label: 'Mentee',
-                      value: '${stats.totalMentees}',
-                      icon: Icons.people_outline),
-                  _StatCard(
-                      label: 'Phòng học',
-                      value: '${stats.totalRooms}',
-                      icon: Icons.meeting_room_outlined),
-                  _StatCard(
-                      label: 'Buổi hỗ trợ',
-                      value: '${stats.totalSessions}',
-                      icon: Icons.event_note_outlined),
-                  _StatCard(
-                      label: 'Bộ Flashcard/Quiz',
-                      value: '${stats.totalGeneratedSets}',
-                      icon: Icons.auto_awesome_outlined),
-                  _StatCard(
-                      label: 'Lượt làm Quiz',
-                      value: '${stats.totalQuizAttempts}',
-                      icon: Icons.quiz_outlined),
-                ],
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text('Lỗi tải thống kê: $e'),
-            ),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ResponsiveContainer(
+            maxWidth: 1100,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Tổng quan chương trình',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                statsAsync.when(
+                  data: (stats) => GridView(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 260,
+                      mainAxisExtent: 100,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _StatCard(
+                          label: 'Mentor',
+                          value: '${stats.totalMentors}',
+                          icon: Icons.school_outlined),
+                      _StatCard(
+                          label: 'Mentee',
+                          value: '${stats.totalMentees}',
+                          icon: Icons.people_outline),
+                      _StatCard(
+                          label: 'Tổng phòng học',
+                          value: '${stats.totalRooms}',
+                          icon: Icons.meeting_room_outlined),
+                      _StatCard(
+                          label: 'Phòng đang học',
+                          value: '${stats.activeRooms}',
+                          icon: Icons.groups_outlined),
+                      _StatCard(
+                          label: 'Tổng buổi học',
+                          value: '${stats.totalSessions}',
+                          icon: Icons.event_note_outlined),
+                      _StatCard(
+                          label: 'Buổi đã hoàn thành',
+                          value: '${stats.completedSessions}',
+                          icon: Icons.verified_outlined),
+                    ],
+                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text('Lỗi tải thống kê: $e'),
+                ),
             const SizedBox(height: 24),
             Text(
               'Danh sách Phòng học',
@@ -158,6 +167,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               error: (e, _) => Text('Lỗi tải phòng học: $e'),
             ),
           ],
+        ),
+        ),
         ),
       ),
     );
