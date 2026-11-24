@@ -21,6 +21,7 @@ void main() {
 
       var downloaded = false;
       var deleted = false;
+      var previewed = false;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -28,6 +29,7 @@ void main() {
             body: DocumentCard(
               document: doc,
               showDelete: true,
+              onPreview: () => previewed = true,
               onDownload: () => downloaded = true,
               onDelete: () => deleted = true,
             ),
@@ -39,6 +41,9 @@ void main() {
       expect(find.text('Design Patterns'), findsOneWidget);
       expect(find.text('1.00 MB'), findsOneWidget);
       expect(find.text('PDF'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      expect(previewed, isTrue);
 
       await tester.tap(find.byIcon(Icons.download_rounded));
       expect(downloaded, isTrue);

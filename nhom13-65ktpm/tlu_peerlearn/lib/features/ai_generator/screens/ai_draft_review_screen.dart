@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/flashcard_item.dart';
 import '../models/generated_set.dart';
 import '../models/quiz_question_item.dart';
+import '../widgets/flashcard_edit_dialog.dart';
 import '../widgets/question_edit_dialog.dart';
 
 class AiDraftReviewScreen extends StatefulWidget {
@@ -136,9 +137,28 @@ class _AiDraftReviewScreenState extends State<AiDraftReviewScreen> {
                   children: [
                     Text('Thẻ #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
                     if (!_isPublished)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        onPressed: () => _deleteCard(index),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blue),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => FlashcardEditDialog(
+                                  flashcard: card,
+                                  onSave: (updated) {
+                                    setState(() => _cards[index] = updated);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            onPressed: () => _deleteCard(index),
+                          ),
+                        ],
                       ),
                   ],
                 ),
