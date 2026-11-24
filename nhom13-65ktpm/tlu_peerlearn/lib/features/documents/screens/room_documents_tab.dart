@@ -7,6 +7,9 @@ import '../widgets/document_card.dart';
 import '../widgets/document_quota_card.dart';
 import '../widgets/document_upload_dialog.dart';
 import 'document_preview_screen.dart';
+import '../../ai_generator/screens/ai_draft_review_screen.dart';
+import '../../ai_generator/screens/generate_content_dialog.dart';
+import '../../ai_generator/services/ai_generator_service.dart';
 
 class RoomDocumentsTab extends ConsumerStatefulWidget {
   final String roomId;
@@ -81,6 +84,50 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
         const SnackBar(content: Text('Đã xóa tài liệu thành công')),
       );
     }
+  }
+
+  void _openDirectAiGeneration(List<DocumentItem> selectedDocs) {
+    showDialog(
+      context: context,
+      builder: (ctx) => GenerateContentDialog(
+        availableDocuments: selectedDocs,
+        onGenerate: ({
+          required documentIds,
+          required contentType,
+          required count,
+          required difficulty,
+          topic,
+        }) async {
+          final service = ref.read(aiGeneratorServiceProvider);
+          final result = await service.generateContent(
+            roomId: widget.roomId,
+            createdBy: widget.currentUserId ?? 'current_user',
+            title: '${contentType == "quiz" ? "Bài trắc nghiệm" : "Bộ thẻ"} (${difficulty.toUpperCase()})',
+            contentType: contentType,
+            count: count,
+            difficulty: difficulty,
+            topic: topic,
+            documentIds: documentIds,
+            documentContext: 'Tài liệu phòng học TLU.',
+          );
+
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AiDraftReviewScreen(
+                  generatedSet: result.set,
+                  flashcards: result.flashcards,
+                  quizQuestions: result.questions,
+                  onPublish: () async {
+                    await service.publishSet(result.set.id);
+                  },
+                ),
+              ),
+            );
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -174,7 +221,11 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
                       label: const Text('Tạo bài AI'),
                       onPressed: () {
                         final selected = docs.where((d) => _selectedForAi.contains(d.id)).toList();
-                        widget.onGenerateAi?.call(selected);
+                        if (widget.onGenerateAi != null) {
+                          widget.onGenerateAi!(selected);
+                        } else {
+                          _openDirectAiGeneration(selected);
+                        }
                       },
                     ),
                     orElse: () => const SizedBox.shrink(),
