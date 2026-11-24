@@ -18,6 +18,8 @@ Tài liệu này tổng hợp toàn bộ quy tắc nghiệp vụ (**BR-01** đ�
 | **BR-08** | Mỗi lượt làm Quiz được lưu thành một bản ghi độc lập; điểm số và thống kê được tính hoàn toàn từ dữ liệu làm bài thực tế bằng truy vấn DB, không phụ thuộc AI. |
 | **BR-09** | Mentor có quyền ghi nhận buổi học, điểm danh và tải lên minh chứng độc lập; trạng thái tự xác nhận của Mentee được lưu song song và **không chặn** việc hoàn tất báo cáo của Mentor. |
 | **BR-10** | Mentee chỉ được phép tự xác nhận tham gia buổi học cho chính tài khoản của mình. |
+| **BR-11** | **Khóa đổi vai trò & xóa đăng ký học phần khi đang có phòng/lời mời:** Nếu sinh viên đang tham gia phòng học `active` (`ck_room_members`) hoặc đang có lời mời/yêu cầu `pending` (`ck_room_invitations`) thuộc học phần đó, hệ thống **không cho phép đổi vai trò** (`mentor` ↔ `mentee`) và **không cho phép xóa đăng ký** khi phòng còn `active` (phải rời/đóng phòng trước). |
+| **BR-12** | **Giới hạn sĩ số tối đa của Mentor (`max_mentees`):** Khi Mentor chỉnh sửa đăng ký học phần, không được giảm `max_mentees` xuống thấp hơn số lượng Mentee hiện đang có trong phòng `active` của học phần đó. Việc cập nhật lịch rảnh (`available_slots`) và ghi chú được phép bất cứ lúc nào để phục vụ tính điểm tương thích matching. |
 
 ---
 

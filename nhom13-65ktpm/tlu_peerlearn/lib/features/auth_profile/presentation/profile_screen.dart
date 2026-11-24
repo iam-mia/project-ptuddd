@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../data/auth_repository.dart';
 import '../domain/user_profile.dart';
 
@@ -87,8 +88,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Hồ sơ cá nhân')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
+        child: ResponsiveContainer(
+          maxWidth: 560,
+          child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -185,6 +187,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

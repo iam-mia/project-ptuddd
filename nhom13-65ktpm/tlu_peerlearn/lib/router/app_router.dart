@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
 import '../features/admin/presentation/admin_session_logs_screen.dart';
 import '../features/auth_profile/data/auth_repository.dart';
+import '../features/auth_profile/domain/program_registration.dart';
 import '../features/auth_profile/presentation/course_registration_screen.dart';
 import '../features/auth_profile/presentation/login_screen.dart';
 import '../features/auth_profile/presentation/profile_screen.dart';
@@ -55,7 +56,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/registrations',
-        builder: (context, state) => const CourseRegistrationScreen(),
+        builder: (context, state) => CourseRegistrationScreen(
+          initialRegistration: state.extra as ProgramRegistration?,
+        ),
       ),
     ],
   );

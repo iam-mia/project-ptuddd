@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../data/auth_repository.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -59,9 +60,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Đăng ký tài khoản')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
+        child: Center(
+          child: SingleChildScrollView(
+            child: ResponsiveContainer(
+              maxWidth: 480,
+              child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -157,7 +160,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ],
             ),
+            ),
           ),
+        ),
         ),
       ),
     );

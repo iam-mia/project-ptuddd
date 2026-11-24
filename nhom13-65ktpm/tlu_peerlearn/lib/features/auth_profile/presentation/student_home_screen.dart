@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../data/auth_repository.dart';
 import '../data/registration_repository.dart';
 
@@ -34,9 +35,13 @@ class StudentHomeScreen extends ConsumerWidget {
           ref.invalidate(currentProfileProvider);
           ref.invalidate(myRegistrationsProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ResponsiveContainer(
+            maxWidth: 960,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             Card(
               color: Theme.of(context).colorScheme.primaryContainer,
               child: Padding(
@@ -70,13 +75,15 @@ class StudentHomeScreen extends ConsumerWidget {
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
+            GridView(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 340,
+                mainAxisExtent: 120,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.35,
               children: [
                 _ActionCard(
                   icon: Icons.app_registration,
@@ -133,6 +140,7 @@ class StudentHomeScreen extends ConsumerWidget {
                   children: regs.map((r) {
                     return Card(
                       child: ListTile(
+                        onTap: () => context.push('/registrations', extra: r),
                         leading: Icon(
                           r.role == 'mentor'
                               ? Icons.school_outlined
@@ -143,6 +151,7 @@ class StudentHomeScreen extends ConsumerWidget {
                         subtitle: Text(
                           'Vai trò: ${r.role.toUpperCase()} • ${r.availableSlots.length} buổi rảnh',
                         ),
+                        trailing: const Icon(Icons.edit_outlined, size: 20),
                       ),
                     );
                   }).toList(),
@@ -151,7 +160,9 @@ class StudentHomeScreen extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Text('Lỗi tải đăng ký: $e'),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

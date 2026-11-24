@@ -73,5 +73,68 @@ class RegistrationRepository {
         .delete()
         .eq('id', registrationId);
   }
+
+  /// Checks whether a user's registration for [courseId] is tied to an active
+  /// study room or pending invitation, enforcing cross-module business rules.
+  Future<RegistrationLockStatus> getRegistrationLockStatus({
+    required String userId,
+    required String courseId,
+  }) async {
+    final activeMemberships = await _client
+        .from('ck_room_members')
+        .select('room_id, role, ck_study_rooms!inner(course_id, status)')
+        .eq('user_id', userId)
+        .eq('ck_study_rooms.course_id', courseId)
+        .eq('ck_study_rooms.status', 'active');
+
+    final memberships = activeMemberships as List<dynamic>;
+    final hasActiveRoom = memberships.isNotEmpty;
+
+    int activeMenteeCount = 0;
+    if (hasActiveRoom) {
+      final mentorMembership = memberships.cast<Map<String, dynamic>>().where(
+            (m) => m['role'] == 'mentor',
+          );
+      if (mentorMembership.isNotEmpty) {
+        final roomId = mentorMembership.first['room_id'] as String;
+        final mentees = await _client
+            .from('ck_room_members')
+            .select('id')
+            .eq('room_id', roomId)
+            .eq('role', 'mentee');
+        activeMenteeCount = (mentees as List<dynamic>).length;
+      }
+    }
+
+    final pendingInvites = await _client
+        .from('ck_room_invitations')
+        .select('id, ck_study_rooms!inner(course_id)')
+        .eq('ck_study_rooms.course_id', courseId)
+        .eq('status', 'pending')
+        .or('sender_id.eq.$userId,receiver_id.eq.$userId');
+
+    final hasPendingInvitation = (pendingInvites as List<dynamic>).isNotEmpty;
+
+    return RegistrationLockStatus(
+      hasActiveRoom: hasActiveRoom,
+      activeMenteeCount: activeMenteeCount,
+      hasPendingInvitation: hasPendingInvitation,
+    );
+  }
+}
+
+class RegistrationLockStatus {
+  final bool hasActiveRoom;
+  final int activeMenteeCount;
+  final bool hasPendingInvitation;
+
+  const RegistrationLockStatus({
+    this.hasActiveRoom = false,
+    this.activeMenteeCount = 0,
+    this.hasPendingInvitation = false,
+  });
+
+  bool get canDelete => !hasActiveRoom;
+  bool get canChangeRole => !hasActiveRoom && !hasPendingInvitation;
 }
 

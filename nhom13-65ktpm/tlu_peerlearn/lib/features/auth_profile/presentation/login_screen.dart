@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -50,8 +51,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
+            child: ResponsiveContainer(
+              maxWidth: 440,
+              child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -147,6 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
         ),
