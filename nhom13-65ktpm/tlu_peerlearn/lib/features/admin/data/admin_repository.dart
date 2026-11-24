@@ -35,7 +35,7 @@ class AdminRepository {
         .from('ck_program_registrations')
         .select('id')
         .eq('role', 'mentee');
-    final roomsRes = await _client.from('ck_study_rooms').select('id, status');
+    final roomsRes = await _client.from('ck_study_rooms').select('id, is_open');
     final sessionsRes =
         await _client.from('ck_tutoring_sessions').select('id, status');
 
@@ -46,7 +46,7 @@ class AdminRepository {
       totalMentors: (mentorsRes as List).length,
       totalMentees: (menteesRes as List).length,
       totalRooms: rooms.length,
-      activeRooms: rooms.where((r) => r['status'] == 'active').length,
+      activeRooms: rooms.where((r) => r['is_open'] == true).length,
       totalSessions: sessions.length,
       completedSessions:
           sessions.where((s) => s['status'] == 'completed').length,

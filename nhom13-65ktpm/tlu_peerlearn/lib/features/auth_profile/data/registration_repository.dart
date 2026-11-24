@@ -82,10 +82,9 @@ class RegistrationRepository {
   }) async {
     final activeMemberships = await _client
         .from('ck_room_members')
-        .select('room_id, role, ck_study_rooms!inner(course_id, status)')
+        .select('room_id, role, ck_study_rooms!inner(course_id)')
         .eq('user_id', userId)
-        .eq('ck_study_rooms.course_id', courseId)
-        .eq('ck_study_rooms.status', 'active');
+        .eq('ck_study_rooms.course_id', courseId);
 
     final memberships = activeMemberships as List<dynamic>;
     final hasActiveRoom = memberships.isNotEmpty;
