@@ -120,9 +120,9 @@ void main() {
               totalMentors: 4,
               totalMentees: 12,
               totalRooms: 3,
+              activeRooms: 2,
               totalSessions: 5,
-              totalGeneratedSets: 8,
-              totalQuizAttempts: 20,
+              completedSessions: 4,
             ),
             initialRooms: [
               AdminRoomSummary(
