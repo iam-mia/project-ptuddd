@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../models/tutoring_session.dart';
 import '../services/sessions_service.dart';
 import '../widgets/create_session_dialog.dart';
@@ -102,39 +103,42 @@ class _RoomSessionsTabState extends ConsumerState<RoomSessionsTab> {
             final scheduled = sessions.where((s) => s.isScheduled).toList();
             final completed = sessions.where((s) => s.isCompleted).toList();
 
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (scheduled.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.upcoming_outlined, size: 18, color: Colors.blue),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Buổi học sắp diễn ra (${scheduled.length})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ...scheduled.map(_buildSessionCard),
-                  const SizedBox(height: 16),
+            return ResponsiveContainer(
+              maxWidth: 860,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (scheduled.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.upcoming_outlined, size: 18, color: Colors.blue),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Buổi học sắp diễn ra (${scheduled.length})',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...scheduled.map(_buildSessionCard),
+                    const SizedBox(height: 16),
+                  ],
+                  if (completed.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Buổi học đã hoàn tất (${completed.length})',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...completed.map(_buildSessionCard),
+                  ],
                 ],
-                if (completed.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Buổi học đã hoàn tất (${completed.length})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ...completed.map(_buildSessionCard),
-                ],
-              ],
+              ),
             );
           },
         ),
