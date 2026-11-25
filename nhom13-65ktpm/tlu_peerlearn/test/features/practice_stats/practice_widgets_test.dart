@@ -38,7 +38,7 @@ void main() {
 
       // Chạm để lật
       await tester.tap(find.byType(FlashcardCard));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Mặt sau
       expect(find.text('MẶT SAU (ĐÁP ÁN)'), findsOneWidget);

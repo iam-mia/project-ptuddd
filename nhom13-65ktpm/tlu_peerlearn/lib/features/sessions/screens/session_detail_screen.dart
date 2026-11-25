@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../models/tutoring_session.dart';
 import '../services/sessions_service.dart';
 
@@ -176,22 +177,84 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
     }
   }
 
-  Future<void> _mockUploadEvidence() async {
-    // Quick demonstration helper for uploading evidence < 500KB (BR-04)
-    final service = ref.read(sessionsServiceProvider);
-    final mockBytes = Uint8List(200 * 1024); // 200KB < 500KB
-    final evidence = await service.uploadEvidence(
-      sessionId: _session.id,
-      imageBytes: mockBytes,
-      fileName: 'minh_chung_buoi_hoc.jpg',
-      caption: 'Ảnh chụp minh chứng buổi học',
+  Future<void> _showUploadEvidenceDialog() async {
+    final captionController = TextEditingController(text: 'Ảnh minh chứng buổi học');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Thêm ảnh minh chứng buổi học'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Yêu cầu: Ảnh định dạng JPG/PNG, dung lượng < 500KB (BR-04).',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: captionController,
+              decoration: const InputDecoration(
+                labelText: 'Mô tả ngắn về ảnh minh chứng',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.description_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.image, size: 20, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Tệp mẫu: minh_chung_buoi_hoc.jpg (~250 KB)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('Tải lên'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
     );
 
-    setState(() => _evidences.insert(0, evidence));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã tải lên minh chứng buổi học thành công (< 500KB)')),
+    if (confirmed == true && mounted) {
+      final service = ref.read(sessionsServiceProvider);
+      final mockBytes = Uint8List(250 * 1024); // 250KB <= 500KB
+      final caption = captionController.text.trim();
+      final evidence = await service.uploadEvidence(
+        sessionId: _session.id,
+        imageBytes: mockBytes,
+        fileName: 'minh_chung_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        caption: caption.isEmpty ? 'Ảnh minh chứng buổi học' : caption,
       );
+
+      setState(() => _evidences.insert(0, evidence));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã tải lên minh chứng buổi học thành công (< 500KB)')),
+        );
+      }
     }
   }
 
@@ -217,10 +280,10 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
         actions: [
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: _session.isCompleted ? Colors.green.shade100 : Colors.blue.shade100,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               _session.isCompleted ? 'ĐÃ HOÀN TẤT' : 'SẮP DIỄN RA',
@@ -233,240 +296,251 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Basic Session Info
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: ResponsiveContainer(
+          maxWidth: 820,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Basic Session Info
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        _session.isOnline ? Icons.video_call : Icons.place,
-                        color: Theme.of(context).colorScheme.primary,
+                      Row(
+                        children: [
+                          Icon(
+                            _session.isOnline ? Icons.video_call : Icons.place,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _session.isOnline ? 'Học trực tuyến (Online)' : 'Học trực tiếp (Offline)',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(height: 10),
                       Text(
-                        _session.isOnline ? 'Học trực tuyến' : 'Học trực tiếp',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        'Thời gian: ${_session.scheduledStart.day}/${_session.scheduledStart.month}/${_session.scheduledStart.year} • ${_session.scheduledStart.hour.toString().padLeft(2, '0')}:${_session.scheduledStart.minute.toString().padLeft(2, '0')} - ${_session.scheduledEnd.hour.toString().padLeft(2, '0')}:${_session.scheduledEnd.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
+                      if (_session.locationOrLink != null) ...[
+                        const SizedBox(height: 6),
+                        Text('Địa điểm / Link: ${_session.locationOrLink!}'),
+                      ],
+                      if (_session.plannedContent != null) ...[
+                        const SizedBox(height: 8),
+                        Text('Kế hoạch: ${_session.plannedContent!}', style: TextStyle(color: Colors.grey.shade700)),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text('Thời gian: ${_session.scheduledStart.day}/${_session.scheduledStart.month}/${_session.scheduledStart.year} • ${_session.scheduledStart.hour.toString().padLeft(2, '0')}:${_session.scheduledStart.minute.toString().padLeft(2, '0')} - ${_session.scheduledEnd.hour.toString().padLeft(2, '0')}:${_session.scheduledEnd.minute.toString().padLeft(2, '0')}'),
-                  if (_session.locationOrLink != null) ...[
-                    const SizedBox(height: 4),
-                    Text('Địa điểm / Link: ${_session.locationOrLink!}'),
-                  ],
-                  if (_session.plannedContent != null) ...[
-                    const SizedBox(height: 8),
-                    Text('Kế hoạch: ${_session.plannedContent!}', style: TextStyle(color: Colors.grey.shade700)),
-                  ],
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Mentee Independent Confirmation Banner (SES-03, BR-09, BR-10)
-          if (isMentee && myAttendance != null)
-            Card(
-              color: myAttendance.menteeConfirmed ? Colors.green.shade50 : Colors.amber.shade50,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: myAttendance.menteeConfirmed ? Colors.green.shade300 : Colors.amber.shade300,
                 ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+
+              const SizedBox(height: 16),
+
+              // Mentee Independent Confirmation Banner (SES-03, BR-09, BR-10)
+              if (isMentee && myAttendance != null)
+                Card(
+                  color: myAttendance.menteeConfirmed ? Colors.green.shade50 : Colors.amber.shade50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: myAttendance.menteeConfirmed ? Colors.green.shade300 : Colors.amber.shade300,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          myAttendance.menteeConfirmed ? Icons.check_circle : Icons.info_outline,
-                          color: myAttendance.menteeConfirmed ? Colors.green : Colors.amber.shade900,
+                        Row(
+                          children: [
+                            Icon(
+                              myAttendance.menteeConfirmed ? Icons.check_circle : Icons.info_outline,
+                              color: myAttendance.menteeConfirmed ? Colors.green : Colors.amber.shade900,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              myAttendance.menteeConfirmed
+                                  ? 'Bạn đã xác nhận tham gia buổi học (SES-03)'
+                                  : 'Xác nhận tham gia buổi học (SES-03)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: myAttendance.menteeConfirmed ? Colors.green.shade900 : Colors.amber.shade900,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 6),
                         Text(
                           myAttendance.menteeConfirmed
-                              ? 'Bạn đã xác nhận tham gia buổi học (SES-03)'
-                              : 'Xác nhận tham gia buổi học (SES-03)',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: myAttendance.menteeConfirmed ? Colors.green.shade900 : Colors.amber.shade900,
-                          ),
+                              ? 'Thời gian xác nhận: ${myAttendance.menteeConfirmedAt?.hour}:${myAttendance.menteeConfirmedAt?.minute} ngày ${myAttendance.menteeConfirmedAt?.day}/${myAttendance.menteeConfirmedAt?.month}'
+                              : 'Mentee tự xác nhận độc lập, không chặn báo cáo của Mentor (BR-09, BR-10).',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
                         ),
+                        if (!myAttendance.menteeConfirmed) ...[
+                          const SizedBox(height: 10),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.touch_app),
+                            label: _isConfirming
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Text('Bấm để xác nhận tham gia'),
+                            onPressed: _isConfirming ? null : _confirmMenteeAttendance,
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      myAttendance.menteeConfirmed
-                          ? 'Thời gian xác nhận: ${myAttendance.menteeConfirmedAt?.hour}:${myAttendance.menteeConfirmedAt?.minute} ngày ${myAttendance.menteeConfirmedAt?.day}/${myAttendance.menteeConfirmedAt?.month}'
-                          : 'Mentee tự xác nhận độc lập, không chặn báo cáo của Mentor (BR-09, BR-10).',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
-                    ),
-                    if (!myAttendance.menteeConfirmed) ...[
-                      const SizedBox(height: 10),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.touch_app),
-                        label: _isConfirming
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Text('Bấm để xác nhận tham gia'),
-                        onPressed: _isConfirming ? null : _confirmMenteeAttendance,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 16),
-
-          // Attendance List (SES-02)
-          Text(
-            'Danh sách điểm danh thành viên',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          if (_attendances.isEmpty)
-            const Text('Chưa có danh sách thành viên điểm danh.')
-          else
-            ..._attendances.map((att) {
-              final isPresent = _markedStatus[att.menteeId] == 'present';
-
-              return Card(
-                child: ListTile(
-                  title: Text(att.menteeName ?? 'Sinh viên Mentee'),
-                  subtitle: Text(
-                    'Mentor đánh dấu: ${isPresent ? 'Có mặt' : 'Vắng mặt'} • Mentee: ${att.menteeConfirmed ? 'Đã xác nhận' : 'Chưa xác nhận'}',
                   ),
-                  trailing: widget.isMentor && !_session.isCompleted
-                      ? SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(value: 'present', label: Text('Có mặt')),
-                            ButtonSegment(value: 'absent', label: Text('Vắng')),
-                          ],
-                          selected: {_markedStatus[att.menteeId] ?? 'absent'},
-                          onSelectionChanged: (set) {
-                            setState(() => _markedStatus[att.menteeId] = set.first);
-                          },
-                        )
-                      : Chip(
-                          label: Text(isPresent ? 'Có mặt' : 'Vắng mặt'),
-                          backgroundColor: isPresent ? Colors.green.shade100 : Colors.red.shade100,
-                        ),
                 ),
-              );
-            }),
 
-          const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-          // Evidences Section (SES-02)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              // Attendance List (SES-02)
               Text(
-                'Minh chứng buổi học (ảnh < 500KB)',
+                'Danh sách điểm danh thành viên',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-              if (widget.isMentor && !_session.isCompleted)
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
-                  label: const Text('Thêm ảnh'),
-                  onPressed: _mockUploadEvidence,
+              const SizedBox(height: 8),
+              if (_attendances.isEmpty)
+                const Text('Chưa có danh sách thành viên điểm danh.')
+              else
+                ..._attendances.map((att) {
+                  final isPresent = _markedStatus[att.menteeId] == 'present';
+
+                  return Card(
+                    child: ListTile(
+                      title: Text(att.menteeName ?? 'Sinh viên Mentee'),
+                      subtitle: Text(
+                        'Mentor đánh dấu: ${isPresent ? 'Có mặt' : 'Vắng mặt'} • Mentee: ${att.menteeConfirmed ? 'Đã xác nhận' : 'Chưa xác nhận'}',
+                      ),
+                      trailing: widget.isMentor && !_session.isCompleted
+                          ? SegmentedButton<String>(
+                              segments: const [
+                                ButtonSegment(value: 'present', label: Text('Có mặt')),
+                                ButtonSegment(value: 'absent', label: Text('Vắng')),
+                              ],
+                              selected: {_markedStatus[att.menteeId] ?? 'absent'},
+                              onSelectionChanged: (set) {
+                                setState(() => _markedStatus[att.menteeId] = set.first);
+                              },
+                            )
+                          : Chip(
+                              label: Text(isPresent ? 'Có mặt' : 'Vắng mặt'),
+                              backgroundColor: isPresent ? Colors.green.shade100 : Colors.red.shade100,
+                            ),
+                    ),
+                  );
+                }),
+
+              const SizedBox(height: 20),
+
+              // Evidences Section (SES-02)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Minh chứng buổi học (ảnh < 500KB)',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  if (widget.isMentor && !_session.isCompleted)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
+                      label: const Text('Thêm ảnh'),
+                      onPressed: _showUploadEvidenceDialog,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_evidences.isEmpty)
+                Text('Chưa có ảnh minh chứng nào.', style: TextStyle(color: Colors.grey.shade600))
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _evidences.map((e) {
+                    return Chip(
+                      avatar: const Icon(Icons.image, size: 18),
+                      label: Text(e.caption ?? 'Minh chứng'),
+                    );
+                  }).toList(),
                 ),
+
+              const SizedBox(height: 24),
+
+              // Mentor Report Section (SES-02, BR-09)
+              if (widget.isMentor) ...[
+                Text(
+                  'Ghi nhận nội dung buổi học (Mentor)',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _durationController,
+                  keyboardType: TextInputType.number,
+                  readOnly: _session.isCompleted,
+                  decoration: const InputDecoration(
+                    labelText: 'Thời lượng thực tế (phút) *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _guidedContentController,
+                  maxLines: 3,
+                  readOnly: _session.isCompleted,
+                  decoration: const InputDecoration(
+                    labelText: 'Nội dung kiến thức đã hướng dẫn *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _outcomesController,
+                  maxLines: 2,
+                  readOnly: _session.isCompleted,
+                  decoration: const InputDecoration(
+                    labelText: 'Kết quả đạt được',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _issuesController,
+                  maxLines: 2,
+                  readOnly: _session.isCompleted,
+                  decoration: const InputDecoration(
+                    labelText: 'Vấn đề còn tồn tại',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (!_session.isCompleted)
+                  FilledButton.icon(
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: _isSavingReport
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Hoàn tất báo cáo buổi học (SES-02)'),
+                    onPressed: _isSavingReport ? null : _saveMentorReport,
+                  ),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-          if (_evidences.isEmpty)
-            Text('Chưa có ảnh minh chứng nào.', style: TextStyle(color: Colors.grey.shade600))
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _evidences.map((e) {
-                return Chip(
-                  avatar: const Icon(Icons.image, size: 18),
-                  label: Text(e.caption ?? 'Minh chứng'),
-                );
-              }).toList(),
-            ),
-
-          const SizedBox(height: 24),
-
-          // Mentor Report Section (SES-02, BR-09)
-          if (widget.isMentor) ...[
-            Text(
-              'Ghi nhận nội dung buổi học (Mentor)',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _durationController,
-              keyboardType: TextInputType.number,
-              readOnly: _session.isCompleted,
-              decoration: const InputDecoration(
-                labelText: 'Thời lượng thực tế (phút) *',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _guidedContentController,
-              maxLines: 3,
-              readOnly: _session.isCompleted,
-              decoration: const InputDecoration(
-                labelText: 'Nội dung kiến thức đã hướng dẫn *',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _outcomesController,
-              maxLines: 2,
-              readOnly: _session.isCompleted,
-              decoration: const InputDecoration(
-                labelText: 'Kết quả đạt được',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _issuesController,
-              maxLines: 2,
-              readOnly: _session.isCompleted,
-              decoration: const InputDecoration(
-                labelText: 'Vấn đề còn tồn tại',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (!_session.isCompleted)
-              FilledButton.icon(
-                icon: const Icon(Icons.check_circle_outline),
-                label: _isSavingReport
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Hoàn tất báo cáo buổi học (SES-02)'),
-                onPressed: _isSavingReport ? null : _saveMentorReport,
-              ),
-          ],
-        ],
+        ),
       ),
     );
   }
