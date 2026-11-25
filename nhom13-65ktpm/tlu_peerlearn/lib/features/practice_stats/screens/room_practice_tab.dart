@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../../ai_generator/models/generated_set.dart';
 import '../models/quiz_attempt.dart';
 import '../services/practice_service.dart';
@@ -104,123 +105,130 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
           ref.invalidate(roomPublishedSetsProvider(widget.roomId));
           await _loadSummary();
         },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Personal practice summary card (PRA-04)
-            if (_personalSummary != null && !_isLoadingSummary)
-              Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.workspace_premium_outlined, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Tiến độ tự học cá nhân (PRA-04)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _SummaryItem(
-                            label: 'Quiz đã làm',
-                            value: '${_personalSummary!.totalQuizzesTaken}',
-                          ),
-                          _SummaryItem(
-                            label: 'Điểm TB Quiz',
-                            value: '${_personalSummary!.averageScore}',
-                          ),
-                          _SummaryItem(
-                            label: 'Flashcard thuộc',
-                            value: '${_personalSummary!.rememberedFlashcards}/${_personalSummary!.totalFlashcardsStudied}',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            const SizedBox(height: 16),
-
-            Text(
-              'Bài ôn tập đã phát hành trong phòng',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-
-            setsAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (err, _) => Center(child: Text('Lỗi tải bài ôn tập: $err')),
-              data: (sets) {
-                if (sets.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ResponsiveContainer(
+            maxWidth: 860,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Personal practice summary card (PRA-04)
+                if (_personalSummary != null && !_isLoadingSummary)
+                  Card(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.school_outlined, size: 56, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Chưa có bài ôn tập nào được phát hành.',
-                            style: TextStyle(color: Colors.grey.shade600),
+                          Row(
+                            children: [
+                              Icon(Icons.workspace_premium_outlined, color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Tiến độ tự học cá nhân (PRA-04)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Mentor sẽ tạo và duyệt bài Flashcard/Quiz từ kho tài liệu.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _SummaryItem(
+                                label: 'Quiz đã làm',
+                                value: '${_personalSummary!.totalQuizzesTaken}',
+                              ),
+                              _SummaryItem(
+                                label: 'Điểm TB Quiz',
+                                value: '${_personalSummary!.averageScore}',
+                              ),
+                              _SummaryItem(
+                                label: 'Flashcard thuộc',
+                                value: '${_personalSummary!.rememberedFlashcards}/${_personalSummary!.totalFlashcardsStudied}',
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  );
-                }
+                  ),
 
-                final flashcardSets = sets.where((s) => s.isFlashcard).toList();
-                final quizSets = sets.where((s) => s.isQuiz).toList();
+                const SizedBox(height: 20),
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (flashcardSets.isNotEmpty) ...[
-                      const Text(
-                        'Bộ Thẻ Flashcard',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue),
-                      ),
-                      const SizedBox(height: 8),
-                      ...flashcardSets.map((s) => _buildSetCard(s, isQuiz: false)),
-                      const SizedBox(height: 16),
-                    ],
-                    if (quizSets.isNotEmpty) ...[
-                      const Text(
-                        'Bài Trắc Nghiệm (Quiz)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.deepPurple),
-                      ),
-                      const SizedBox(height: 8),
-                      ...quizSets.map((s) => _buildSetCard(s, isQuiz: true)),
-                    ],
-                  ],
-                );
-              },
+                Text(
+                  'Bài ôn tập đã phát hành trong phòng',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+
+                setsAsync.when(
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (err, _) => Center(child: Text('Lỗi tải bài ôn tập: $err')),
+                  data: (sets) {
+                    if (sets.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.school_outlined, size: 56, color: Colors.grey.shade400),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Chưa có bài ôn tập nào được phát hành.',
+                                style: TextStyle(color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Mentor sẽ tạo và duyệt bài Flashcard/Quiz từ kho tài liệu.',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    final flashcardSets = sets.where((s) => s.isFlashcard).toList();
+                    final quizSets = sets.where((s) => s.isQuiz).toList();
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (flashcardSets.isNotEmpty) ...[
+                          const Text(
+                            'Bộ Thẻ Flashcard',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue),
+                          ),
+                          const SizedBox(height: 8),
+                          ...flashcardSets.map((s) => _buildSetCard(s, isQuiz: false)),
+                          const SizedBox(height: 16),
+                        ],
+                        if (quizSets.isNotEmpty) ...[
+                          const Text(
+                            'Bài Trắc Nghiệm (Quiz)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.deepPurple),
+                          ),
+                          const SizedBox(height: 8),
+                          ...quizSets.map((s) => _buildSetCard(s, isQuiz: true)),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -275,7 +283,7 @@ class _SummaryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
         Text(label, style: const TextStyle(fontSize: 11, color: Colors.black87)),
       ],

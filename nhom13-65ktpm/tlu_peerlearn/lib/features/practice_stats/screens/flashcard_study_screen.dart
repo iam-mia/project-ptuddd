@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/responsive_container.dart';
 import '../../ai_generator/models/generated_set.dart';
 import '../models/flashcard_study_item.dart';
 import '../services/practice_service.dart';
@@ -109,8 +110,8 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        child: ResponsiveContainer(
+          maxWidth: 680,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -120,21 +121,25 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
                 children: [
                   Text(
                     'Đã thuộc $rememberedCount/${_cards.length} thẻ',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   Text(
                     '${(progress * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.green,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               LinearProgressIndicator(
                 value: progress,
                 backgroundColor: Colors.grey.shade200,
                 color: Colors.green,
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(4),
+                minHeight: 10,
+                borderRadius: BorderRadius.circular(5),
               ),
 
               const SizedBox(height: 20),
@@ -166,7 +171,7 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
                 Text(
                   'Thẻ ${_currentIndex + 1}/${activeCards.length}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 12),
                 Expanded(
