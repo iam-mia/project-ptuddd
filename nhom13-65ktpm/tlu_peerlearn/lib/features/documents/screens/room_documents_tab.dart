@@ -87,8 +87,11 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
     }
   }
 
-  void _openDirectAiGeneration(List<DocumentItem> selectedDocs) {
-    showDialog(
+  Future<void> _openDirectAiGeneration(List<DocumentItem> selectedDocs) async {
+    AiGeneratedResult? generatedResult;
+    final service = ref.read(aiGeneratorServiceProvider);
+
+    final didGenerate = await showDialog<bool>(
       context: context,
       builder: (ctx) => GenerateContentDialog(
         availableDocuments: selectedDocs,
@@ -99,8 +102,11 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
           required difficulty,
           topic,
         }) async {
-          final service = ref.read(aiGeneratorServiceProvider);
-          final result = await service.generateContent(
+          final docSummary = selectedDocs
+              .where((d) => documentIds.contains(d.id))
+              .map((d) => '${d.fileName}${d.topic != null ? " (${d.topic})" : ""}')
+              .join('; ');
+          generatedResult = await service.generateContent(
             roomId: widget.roomId,
             createdBy: widget.currentUserId ?? 'current_user',
             title: '${contentType == "quiz" ? "Bài trắc nghiệm" : "Bộ thẻ"} (${difficulty.toUpperCase()})',
@@ -109,26 +115,27 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
             difficulty: difficulty,
             topic: topic,
             documentIds: documentIds,
-            documentContext: 'Tài liệu phòng học TLU.',
+            documentContext: docSummary.isNotEmpty ? docSummary : 'Tài liệu phòng học TLU.',
           );
-
-          if (mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AiDraftReviewScreen(
-                  generatedSet: result.set,
-                  flashcards: result.flashcards,
-                  quizQuestions: result.questions,
-                  onPublish: () async {
-                    await service.publishSet(result.set.id);
-                  },
-                ),
-              ),
-            );
-          }
         },
       ),
     );
+
+    if (didGenerate == true && generatedResult != null && mounted) {
+      final result = generatedResult!;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AiDraftReviewScreen(
+            generatedSet: result.set,
+            flashcards: result.flashcards,
+            quizQuestions: result.questions,
+            onPublish: () async {
+              await service.publishSet(result.set.id);
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override

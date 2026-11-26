@@ -193,36 +193,46 @@ class AiGeneratorService {
 
     // 3. Insert items
     if (contentType == 'flashcard' && flashcards != null && flashcards.isNotEmpty) {
-      final rows = flashcards.map((f) => {
-            'set_id': set.id,
-            'front_text': f.frontText,
-            'back_text': f.backText,
-            'explanation': f.explanation,
-            'topic': f.topic ?? topic,
-            'difficulty': f.difficulty ?? difficulty,
-          }).toList();
+      final rows = flashcards.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final f = entry.value;
+        return {
+          'set_id': set.id,
+          'front_text': f.frontText,
+          'back_text': f.backText,
+          'explanation': f.explanation,
+          'topic': f.topic ?? topic,
+          'difficulty': f.difficulty ?? difficulty,
+          'order_index': idx,
+        };
+      }).toList();
       await _client.from(flashcardsTable).insert(rows);
     } else if (contentType == 'quiz' && questions != null && questions.isNotEmpty) {
       final quizRecord = await _client
           .from(quizzesTable)
           .insert({
             'set_id': set.id,
-            'title': title,
+            'time_limit_minutes': 15,
             'total_questions': questions.length,
           })
           .select()
           .single();
 
       final quizId = quizRecord['id'] as String;
-      final qRows = questions.map((q) => {
-            'quiz_id': quizId,
-            'question_text': q.questionText,
-            'options': q.options,
-            'correct_index': q.correctIndex,
-            'explanation': q.explanation,
-            'topic': q.topic ?? topic,
-            'difficulty': q.difficulty ?? difficulty,
-          }).toList();
+      final qRows = questions.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final q = entry.value;
+        return {
+          'quiz_id': quizId,
+          'question_text': q.questionText,
+          'options': q.options,
+          'correct_index': q.correctIndex,
+          'explanation': q.explanation,
+          'topic': q.topic ?? topic,
+          'difficulty': q.difficulty ?? difficulty,
+          'order_index': idx,
+        };
+      }).toList();
       await _client.from(questionsTable).insert(qRows);
     }
 
