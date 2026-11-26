@@ -8,6 +8,7 @@ export 'screens/room_documents_tab.dart';
 export 'services/document_service.dart';
 export 'utils/document_validator.dart';
 export 'utils/docx_xml_parser.dart';
+export 'utils/file_downloader.dart';
 export 'utils/text_extractor.dart';
 export 'utils/topic_keyword_extractor.dart';
 export 'widgets/document_card.dart';

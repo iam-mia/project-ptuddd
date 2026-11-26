@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/document_item.dart';
 import '../models/document_sort_option.dart';
 import '../services/document_service.dart';
+import '../utils/file_downloader.dart';
 import '../widgets/document_card.dart';
 import '../widgets/document_quota_card.dart';
 import '../widgets/document_upload_dialog.dart';
@@ -285,10 +286,43 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
                         document: doc,
                         showDelete: canDelete,
                         onDelete: () => _confirmDelete(context, doc),
+                        onDownload: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Đang tải "${doc.fileName}"...')),
+                          );
+                          try {
+                            final started = await downloadFileFromUrl(
+                              url: doc.fileUrl,
+                              fileName: doc.fileName,
+                            );
+                            if (!started && mounted) {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Không thể tải tệp tự động.')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Lỗi tải tệp: $e')),
+                              );
+                            }
+                          }
+                        },
                         onPreview: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => DocumentPreviewScreen(document: doc),
+                              builder: (previewCtx) => DocumentPreviewScreen(
+                                document: doc,
+                                onGenerateAi: () {
+                                  Navigator.of(previewCtx).pop();
+                                  if (widget.onGenerateAi != null) {
+                                    widget.onGenerateAi!([doc]);
+                                  } else {
+                                    _openDirectAiGeneration([doc]);
+                                  }
+                                },
+                              ),
                             ),
                           );
                         },

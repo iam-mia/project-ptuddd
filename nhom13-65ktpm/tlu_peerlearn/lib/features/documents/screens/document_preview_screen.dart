@@ -1,18 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/document_item.dart';
+import '../utils/file_downloader.dart';
 
 class DocumentPreviewScreen extends StatelessWidget {
   final DocumentItem document;
   final String? extractedText;
   final VoidCallback? onGenerateAi;
+  final Future<void> Function()? onDownload;
 
   const DocumentPreviewScreen({
     super.key,
     required this.document,
     this.extractedText,
     this.onGenerateAi,
+    this.onDownload,
   });
+
+  Future<void> _handleDownload(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (onDownload != null) {
+      await onDownload!();
+      return;
+    }
+
+    messenger.showSnackBar(
+      SnackBar(content: Text('Đang tải "${document.fileName}"...')),
+    );
+
+    try {
+      final started = await downloadFileFromUrl(
+        url: document.fileUrl,
+        fileName: document.fileName,
+      );
+      if (!started) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Không thể tải tệp tự động. Bạn có thể bấm nút sao chép liên kết ở góc trên.'),
+          ),
+        );
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Lỗi tải tệp: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,11 +135,7 @@ class DocumentPreviewScreen extends StatelessWidget {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.download_rounded),
                     label: const Text('Tải về máy'),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Đang tải "${document.fileName}"...')),
-                      );
-                    },
+                    onPressed: () => _handleDownload(context),
                   ),
                 ),
                 const SizedBox(width: 12),
