@@ -92,6 +92,12 @@ class StudentHomeScreen extends ConsumerWidget {
                   onTap: () => context.push('/registrations'),
                 ),
                 _ActionCard(
+                  icon: Icons.groups_outlined,
+                  title: 'Phòng học & Ghép đôi',
+                  subtitle: 'Tìm Mentor/Mentee, tạo & vào phòng',
+                  onTap: () => context.push('/rooms'),
+                ),
+                _ActionCard(
                   icon: Icons.person_outline,
                   title: 'Hồ sơ cá nhân',
                   subtitle: 'Cập nhật MSV, khoa, lớp',

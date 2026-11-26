@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/responsive_container.dart';
 import '../../auth_profile/data/auth_repository.dart';
 import '../../documents/screens/room_documents_tab.dart';
 import '../../practice_stats/screens/room_practice_tab.dart';
@@ -69,26 +70,30 @@ class _StudyRoomDetailScreenState extends ConsumerState<StudyRoomDetailScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _RoomOverview(room: room, currentUserId: userId),
-          RoomDocumentsTab(
-            roomId: room.id,
-            currentUserId: userId,
-            isMentor: isMentor,
-          ),
-          RoomPracticeTab(
-            roomId: room.id,
-            currentUserId: userId,
-            isMentor: isMentor,
-          ),
-          RoomSessionsTab(
-            roomId: room.id,
-            currentUserId: userId,
-            isMentor: isMentor,
-          ),
-        ],
+      body: ResponsiveContainer(
+        maxWidth: 960,
+        padding: EdgeInsets.zero,
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _RoomOverview(room: room, currentUserId: userId),
+            RoomDocumentsTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: isMentor,
+            ),
+            RoomPracticeTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: isMentor,
+            ),
+            RoomSessionsTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: isMentor,
+            ),
+          ],
+        ),
       ),
     );
   }

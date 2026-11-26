@@ -193,7 +193,7 @@ class _CourseRegistrationScreenState
           ],
           coursesAsync.when(
             data: (courses) => DropdownButtonFormField<String>(
-              value: _selectedCourseId,
+              initialValue: _selectedCourseId,
               decoration: const InputDecoration(
                 labelText: 'Chọn học phần *',
                 border: OutlineInputBorder(),
