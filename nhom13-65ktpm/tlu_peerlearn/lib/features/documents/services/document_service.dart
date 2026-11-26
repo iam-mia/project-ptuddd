@@ -107,6 +107,23 @@ class DocumentService {
     return DocumentItem.fromJson(record);
   }
 
+  /// Downloads raw file bytes from Supabase Storage using the stored file URL
+  Future<Uint8List?> downloadDocumentBytes(String fileUrl) async {
+    if (_client == null) return null;
+    try {
+      final uri = Uri.parse(fileUrl);
+      final segments = uri.pathSegments;
+      final bucketIndex = segments.indexOf(storageBucket);
+      if (bucketIndex == -1 || bucketIndex + 1 >= segments.length) {
+        return null;
+      }
+      final filePath = segments.sublist(bucketIndex + 1).join('/');
+      return await _client.storage.from(storageBucket).download(filePath);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Deletes document record and removes file from storage
   Future<void> deleteDocument({
     required String documentId,

@@ -43,3 +43,32 @@ Future<bool> downloadFileFromUrl({
     client.close();
   }
 }
+
+/// Opens a file URL using OS default handler on desktop platforms.
+Future<bool> openFileInBrowser(String url) async {
+  final uri = Uri.tryParse(url);
+  if (uri == null || !uri.hasScheme) return false;
+
+  try {
+    if (Platform.isWindows) {
+      await Process.run('cmd', ['/c', 'start', '', url]);
+      return true;
+    } else if (Platform.isMacOS) {
+      await Process.run('open', [url]);
+      return true;
+    } else if (Platform.isLinux) {
+      await Process.run('xdg-open', [url]);
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+/// Decompresses raw DEFLATE bytes (used by ZIP / DOCX entries) via dart:io ZLibDecoder.
+Future<Uint8List?> inflateRawBytes(Uint8List compressed) async {
+  try {
+    return Uint8List.fromList(ZLibDecoder(raw: true).convert(compressed));
+  } catch (_) {
+    return null;
+  }
+}
