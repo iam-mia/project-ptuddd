@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/responsive_container.dart';
 import '../../auth_profile/data/auth_repository.dart';
 import '../../documents/screens/room_documents_tab.dart';
 import '../../practice_stats/screens/room_practice_tab.dart';
@@ -69,26 +70,30 @@ class _StudyRoomDetailScreenState extends ConsumerState<StudyRoomDetailScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _RoomOverview(room: room, currentUserId: userId),
-          RoomDocumentsTab(
-            roomId: room.id,
-            currentUserId: userId,
-            isMentor: isMentor,
-          ),
-          RoomPracticeTab(
-            roomId: room.id,
-            currentUserId: userId,
-            isMentor: isMentor,
-          ),
-          RoomSessionsTab(
-            roomId: room.id,
-            currentUserId: userId,
-            isMentor: isMentor,
-          ),
-        ],
+      body: ResponsiveContainer(
+        maxWidth: 960,
+        padding: EdgeInsets.zero,
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _RoomOverview(room: room, currentUserId: userId),
+            RoomDocumentsTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: isMentor,
+            ),
+            RoomPracticeTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: isMentor,
+            ),
+            RoomSessionsTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: isMentor,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -107,7 +112,8 @@ class _RoomOverview extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text('Lỗi tải thành viên: $error')),
       data: (members) {
-        final mentor = members.where((member) => member.role == 'mentor');
+        final mentors = members.where((m) => m.role == 'mentor').toList();
+        final mentees = members.where((m) => m.role != 'mentor').toList();
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(roomMembersProvider(room.id)),
           child: ListView(
@@ -135,13 +141,34 @@ class _RoomOverview extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Thành viên (${members.length})',
+                'Mentor phụ trách',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              if (members.isEmpty)
-                const Card(child: ListTile(title: Text('Chưa có thành viên'))),
-              ...members.map(
+              if (mentors.isEmpty)
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('Thông tin Mentor chưa sẵn sàng'),
+                  ),
+                )
+              else
+                ...mentors.map(
+                  (member) => _MemberTile(
+                    member: member,
+                    canManage: false,
+                    onRemove: () {},
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Text(
+                'Học viên (${mentees.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              if (mentees.isEmpty)
+                const Card(child: ListTile(title: Text('Chưa có học viên nào'))),
+              ...mentees.map(
                 (member) => _MemberTile(
                   member: member,
                   canManage:
@@ -150,11 +177,6 @@ class _RoomOverview extends ConsumerWidget {
                   onRemove: () => _removeMember(context, ref, member),
                 ),
               ),
-              if (mentor.isEmpty)
-                const ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Thông tin Mentor chưa sẵn sàng'),
-                ),
             ],
           ),
         );
@@ -215,20 +237,45 @@ class _MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMentor = member.role == 'mentor';
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
         leading: CircleAvatar(
+          backgroundColor:
+              isMentor ? colorScheme.primaryContainer : colorScheme.secondaryContainer,
           child: Icon(
-            member.role == 'mentor' ? Icons.school_outlined : Icons.person,
+            isMentor ? Icons.school_outlined : Icons.person,
+            color: isMentor
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSecondaryContainer,
           ),
         ),
-        title: Text(member.fullName ?? member.userId),
-        subtitle: Text(
-          member.role == 'mentor'
-              ? 'Mentor'
-              : 'Mentee'
-                    '${member.studentId == null ? '' : ' • ${member.studentId}'}',
+        title: Row(
+          children: [
+            Flexible(child: Text(member.fullName ?? member.userId)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: isMentor
+                    ? colorScheme.primaryContainer
+                    : colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                isMentor ? 'Mentor' : 'Mentee',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isMentor
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSecondaryContainer,
+                    ),
+              ),
+            ),
+          ],
         ),
+        subtitle: member.studentId == null ? null : Text('MSV: ${member.studentId}'),
         trailing: canManage
             ? IconButton(
                 tooltip: 'Xóa thành viên',

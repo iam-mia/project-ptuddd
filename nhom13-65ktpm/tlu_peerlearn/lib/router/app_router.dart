@@ -9,6 +9,8 @@ import '../features/auth_profile/presentation/login_screen.dart';
 import '../features/auth_profile/presentation/profile_screen.dart';
 import '../features/auth_profile/presentation/register_screen.dart';
 import '../features/auth_profile/presentation/student_home_screen.dart';
+import '../features/room_matching/presentation/room_matching_screen.dart';
+import '../features/room_matching/presentation/study_room_detail_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final profileAsync = ref.watch(currentProfileProvider);
@@ -58,6 +60,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/registrations',
         builder: (context, state) => CourseRegistrationScreen(
           initialRegistration: state.extra as ProgramRegistration?,
+        ),
+      ),
+      GoRoute(
+        path: '/rooms',
+        builder: (context, state) => const RoomMatchingScreen(),
+      ),
+      GoRoute(
+        path: '/rooms/:roomId',
+        builder: (context, state) => StudyRoomDetailScreen(
+          roomId: state.pathParameters['roomId']!,
         ),
       ),
     ],

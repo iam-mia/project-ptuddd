@@ -52,6 +52,57 @@ class _RoomSessionsTabState extends ConsumerState<RoomSessionsTab> {
     );
   }
 
+  void _openEditSessionDialog(TutoringSession session) {
+    showDialog(
+      context: context,
+      builder: (ctx) => CreateSessionDialog(
+        initialSession: session,
+        onSubmit: ({
+          required title,
+          required scheduledStart,
+          required scheduledEnd,
+          required mode,
+          locationOrLink,
+          plannedContent,
+        }) async {
+          await ref.read(sessionsServiceProvider).updateSession(
+                sessionId: session.id,
+                title: title,
+                scheduledStart: scheduledStart,
+                scheduledEnd: scheduledEnd,
+                mode: mode,
+                locationOrLink: locationOrLink,
+                plannedContent: plannedContent,
+              );
+          ref.invalidate(roomSessionsProvider(widget.roomId));
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteSession(TutoringSession session) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa buổi học'),
+        content: Text('Bạn có chắc muốn xóa buổi học "${session.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(sessionsServiceProvider).deleteSession(session.id);
+    ref.invalidate(roomSessionsProvider(widget.roomId));
+  }
+
   void _openSessionDetail(TutoringSession session) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -178,7 +229,21 @@ class _RoomSessionsTabState extends ConsumerState<RoomSessionsTab> {
         subtitle: Text(
           '${s.scheduledStart.day}/${s.scheduledStart.month} • ${s.scheduledStart.hour.toString().padLeft(2, '0')}:${s.scheduledStart.minute.toString().padLeft(2, '0')} • ${isOnline ? 'Online' : 'Offline'}',
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: widget.isMentor && !isDone
+            ? PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _openEditSessionDialog(s);
+                  } else if (value == 'delete') {
+                    _confirmDeleteSession(s);
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Chỉnh sửa')),
+                  PopupMenuItem(value: 'delete', child: Text('Xóa buổi học')),
+                ],
+              )
+            : const Icon(Icons.chevron_right),
       ),
     );
   }

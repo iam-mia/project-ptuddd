@@ -138,8 +138,9 @@ class RoomMatchingRepository {
     for (final row in members as List<dynamic>) {
       final roomId = (row as Map<String, dynamic>)['room_id'] as String;
       final mentorId = roomMentors[roomId];
-      if (mentorId != null)
+      if (mentorId != null) {
         counts.update(mentorId, (count) => count + 1, ifAbsent: () => 1);
+      }
     }
     return counts;
   }

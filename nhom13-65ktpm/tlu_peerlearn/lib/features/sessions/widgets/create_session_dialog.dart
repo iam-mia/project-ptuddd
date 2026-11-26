@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/tutoring_session.dart';
 
 class CreateSessionDialog extends StatefulWidget {
+  final TutoringSession? initialSession;
   final Future<void> Function({
     required String title,
     required DateTime scheduledStart,
@@ -12,6 +14,7 @@ class CreateSessionDialog extends StatefulWidget {
 
   const CreateSessionDialog({
     super.key,
+    this.initialSession,
     required this.onSubmit,
   });
 
@@ -27,9 +30,27 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
 
   DateTime _startDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  int _durationHours = 2;
+  int _durationMinutes = 100;
   String _mode = 'offline';
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = widget.initialSession;
+    if (s != null) {
+      _titleController.text = s.title;
+      _locationController.text = s.locationOrLink ?? '';
+      _contentController.text = s.plannedContent ?? '';
+      _startDate = s.scheduledStart;
+      _startTime = TimeOfDay.fromDateTime(s.scheduledStart);
+      _mode = s.mode;
+      final diff = s.scheduledEnd.difference(s.scheduledStart).inMinutes;
+      if (diff == 50 || diff == 100 || diff == 150) {
+        _durationMinutes = diff;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -49,7 +70,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       _startTime.hour,
       _startTime.minute,
     );
-    final endDateTime = startDateTime.add(Duration(hours: _durationHours));
+    final endDateTime = startDateTime.add(Duration(minutes: _durationMinutes));
 
     setState(() => _isLoading = true);
     try {
@@ -80,7 +101,11 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Lên lịch buổi học mới (SES-01)'),
+      title: Text(
+        widget.initialSession != null
+            ? 'Chỉnh sửa buổi học'
+            : 'Lên lịch buổi học mới (SES-01)',
+      ),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -170,18 +195,18 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
 
               // Duration selector
               DropdownButtonFormField<int>(
-                initialValue: _durationHours,
+                initialValue: _durationMinutes,
                 decoration: const InputDecoration(
                   labelText: 'Thời lượng dự kiến',
                   border: OutlineInputBorder(),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 1, child: Text('1 giờ (60 phút)')),
-                  DropdownMenuItem(value: 2, child: Text('2 giờ (120 phút)')),
-                  DropdownMenuItem(value: 3, child: Text('3 giờ (180 phút)')),
+                  DropdownMenuItem(value: 50, child: Text('1 tiết (50 phút)')),
+                  DropdownMenuItem(value: 100, child: Text('2 tiết (100 phút)')),
+                  DropdownMenuItem(value: 150, child: Text('3 tiết (150 phút)')),
                 ],
                 onChanged: (val) {
-                  if (val != null) setState(() => _durationHours = val);
+                  if (val != null) setState(() => _durationMinutes = val);
                 },
               ),
               const SizedBox(height: 12),
@@ -190,7 +215,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                 controller: _contentController,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                  labelText: 'Nội dung kiến thức dự kiến',
+                  labelText: 'Ghi chú',
                   border: OutlineInputBorder(),
                 ),
               ),

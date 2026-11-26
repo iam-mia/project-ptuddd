@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../utils/document_validator.dart';
 
@@ -35,20 +36,31 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
     super.dispose();
   }
 
-  void _onMockFileSelect(String name, int size) {
-    final error = DocumentValidator.validateUpload(
-      fileName: name,
-      sizeInBytes: size,
+  Future<void> _pickRealFile() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'docx'],
     );
-
+    if (files.isEmpty) return;
+    final file = files.single;
+    final bytes = await file.xFile.readAsBytes();
+    if (bytes.isEmpty) {
+      setState(() => _fileError = 'Không đọc được dữ liệu tệp đã chọn.');
+      return;
+    }
+    final error = DocumentValidator.validateUpload(
+      fileName: file.name,
+      sizeInBytes: bytes.length,
+    );
     setState(() {
       _fileError = error;
       if (error == null) {
-        _selectedFileName = name;
-        _nameController.text = name;
-        _selectedBytes = Uint8List(size);
+        _selectedFileName = file.name;
+        _selectedBytes = bytes;
+        if (_nameController.text.isEmpty) {
+          _nameController.text = file.name;
+        }
       } else {
-        _selectedFileName = null;
         _selectedBytes = null;
       }
     });
@@ -110,12 +122,7 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
                       ? 'Đã chọn: $_selectedFileName'
                       : 'Chọn tệp từ thiết bị',
                 ),
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        // Quick selector demo helper for testing or direct picking
-                        _onMockFileSelect('Tai_lieu_hoc_tap.pdf', 1024 * 1024);
-                      },
+                onPressed: _isLoading ? null : _pickRealFile,
               ),
               if (_fileError != null) ...[
                 const SizedBox(height: 6),

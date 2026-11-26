@@ -142,6 +142,36 @@ class SessionsService {
     return session;
   }
 
+  /// Updates an existing scheduled session
+  Future<void> updateSession({
+    required String sessionId,
+    required String title,
+    required DateTime scheduledStart,
+    required DateTime scheduledEnd,
+    required String mode,
+    String? locationOrLink,
+    String? plannedContent,
+  }) async {
+    final timeError = validateSessionTimes(scheduledStart, scheduledEnd);
+    if (timeError != null) throw ArgumentError(timeError);
+    if (_client == null) return;
+
+    await _client.from(sessionsTable).update({
+      'title': title,
+      'scheduled_start': scheduledStart.toIso8601String(),
+      'scheduled_end': scheduledEnd.toIso8601String(),
+      'mode': mode,
+      'location_or_link': locationOrLink,
+      'planned_content': plannedContent,
+    }).eq('id', sessionId);
+  }
+
+  /// Deletes a scheduled session
+  Future<void> deleteSession(String sessionId) async {
+    if (_client == null) return;
+    await _client.from(sessionsTable).delete().eq('id', sessionId);
+  }
+
   /// Fetches attendances for a session
   Future<List<SessionAttendance>> fetchAttendances(String sessionId) async {
     if (_client == null) return [];
