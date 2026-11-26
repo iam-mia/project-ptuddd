@@ -82,7 +82,8 @@ void main() {
 
       expect(find.text('BẢN NHÁP (DRAFT)'), findsOneWidget);
       expect(find.text('Tính đóng gói là gì?'), findsOneWidget);
-      expect(find.text('A. Giấu thông tin'), findsOneWidget);
+      expect(find.text('A. '), findsOneWidget);
+      expect(find.text('Giấu thông tin'), findsOneWidget);
 
       await tester.tap(find.text('Phát hành cho phòng học (Publish)'));
       await tester.pumpAndSettle();

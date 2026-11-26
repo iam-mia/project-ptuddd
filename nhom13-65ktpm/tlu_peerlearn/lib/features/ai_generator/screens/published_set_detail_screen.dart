@@ -129,6 +129,7 @@ class _PublishedSetDetailScreenState extends State<PublishedSetDetailScreen> {
                 const SizedBox(height: 8),
                 ...List.generate(q.options.length, (optIdx) {
                   final isCorrect = optIdx == q.correctIndex;
+                  final cleanOption = q.options[optIdx].replaceFirst(RegExp(r'^[A-Da-d]\.\s*'), '');
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 2),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -140,7 +141,7 @@ class _PublishedSetDetailScreenState extends State<PublishedSetDetailScreen> {
                     child: Row(
                       children: [
                         Text('${String.fromCharCode(65 + optIdx)}. ', style: TextStyle(fontWeight: isCorrect ? FontWeight.bold : FontWeight.normal)),
-                        Expanded(child: Text(q.options[optIdx])),
+                        Expanded(child: Text(cleanOption)),
                         if (isCorrect) const Icon(Icons.check_circle, color: Colors.green, size: 16),
                       ],
                     ),

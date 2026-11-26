@@ -18,6 +18,7 @@ void main() {
     );
 
     var aiClicked = false;
+    var downloadClicked = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -25,6 +26,7 @@ void main() {
           document: doc,
           extractedText: 'Nội dung trích xuất bài học mẫu.',
           onGenerateAi: () => aiClicked = true,
+          onDownload: () async => downloadClicked = true,
         ),
       ),
     );
@@ -33,6 +35,9 @@ void main() {
     expect(find.text('Chủ đề: Design Patterns'), findsOneWidget);
     expect(find.text('Nội dung trích xuất bài học mẫu.'), findsOneWidget);
     expect(find.text('Tạo đề AI'), findsOneWidget);
+
+    await tester.tap(find.text('Tải về máy'));
+    expect(downloadClicked, isTrue);
 
     await tester.tap(find.text('Tạo đề AI'));
     expect(aiClicked, isTrue);

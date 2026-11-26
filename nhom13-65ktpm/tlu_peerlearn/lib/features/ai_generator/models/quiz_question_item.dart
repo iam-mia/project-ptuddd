@@ -25,7 +25,7 @@ class QuizQuestionItem {
       quizId: json['quiz_id'] as String? ?? '',
       questionText: json['question_text'] as String,
       options: (json['options'] as List<dynamic>?)
-              ?.map((e) => e.toString())
+              ?.map((e) => e.toString().replaceFirst(RegExp(r'^[A-Da-d]\.\s*'), ''))
               .toList() ??
           [],
       correctIndex: (json['correct_index'] as num?)?.toInt() ?? 0,

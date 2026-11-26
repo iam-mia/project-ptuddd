@@ -55,8 +55,11 @@ class _RoomLearningContentScreenState extends ConsumerState<RoomLearningContentS
     }
   }
 
-  void _openGenerateDialog(List<DocumentItem> availableDocs) {
-    showDialog(
+  Future<void> _openGenerateDialog(List<DocumentItem> availableDocs) async {
+    AiGeneratedResult? generatedResult;
+    final service = ref.read(aiGeneratorServiceProvider);
+
+    final didGenerate = await showDialog<bool>(
       context: context,
       builder: (ctx) => GenerateContentDialog(
         availableDocuments: availableDocs,
@@ -67,8 +70,11 @@ class _RoomLearningContentScreenState extends ConsumerState<RoomLearningContentS
           required difficulty,
           topic,
         }) async {
-          final service = ref.read(aiGeneratorServiceProvider);
-          final result = await service.generateContent(
+          final docSummary = availableDocs
+              .where((d) => documentIds.contains(d.id))
+              .map((d) => '${d.fileName}${d.topic != null ? " (${d.topic})" : ""}')
+              .join('; ');
+          generatedResult = await service.generateContent(
             roomId: widget.roomId,
             createdBy: widget.currentUserId ?? 'current_user',
             title: '${contentType == "quiz" ? "Bài trắc nghiệm" : "Bộ thẻ"} (${difficulty.toUpperCase()})',
@@ -77,29 +83,32 @@ class _RoomLearningContentScreenState extends ConsumerState<RoomLearningContentS
             difficulty: difficulty,
             topic: topic,
             documentIds: documentIds,
-            documentContext: 'Tài liệu học tập được chọn trong phòng học TLU.',
+            documentContext: docSummary.isNotEmpty
+                ? docSummary
+                : 'Tài liệu học tập được chọn trong phòng học TLU.',
           );
 
           ref.invalidate(roomGeneratedSetsProvider(widget.roomId));
-
-          if (mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AiDraftReviewScreen(
-                  generatedSet: result.set,
-                  flashcards: result.flashcards,
-                  quizQuestions: result.questions,
-                  onPublish: () async {
-                    await service.publishSet(result.set.id);
-                    ref.invalidate(roomGeneratedSetsProvider(widget.roomId));
-                  },
-                ),
-              ),
-            );
-          }
         },
       ),
     );
+
+    if (didGenerate == true && generatedResult != null && mounted) {
+      final result = generatedResult!;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AiDraftReviewScreen(
+            generatedSet: result.set,
+            flashcards: result.flashcards,
+            quizQuestions: result.questions,
+            onPublish: () async {
+              await service.publishSet(result.set.id);
+              ref.invalidate(roomGeneratedSetsProvider(widget.roomId));
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override
