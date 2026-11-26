@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/responsive_container.dart';
@@ -99,7 +99,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   Future<void> _saveMentorReport() async {
     if (_guidedContentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập nội dung đã hướng dẫn')),
+        const SnackBar(content: Text('Vui lòng nhập ghi chú buổi học')),
       );
       return;
     }
@@ -178,7 +178,30 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   }
 
   Future<void> _showUploadEvidenceDialog() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.image,
+    );
+    if (files.isEmpty || !mounted) return;
+    final file = files.single;
+    final bytes = await file.xFile.readAsBytes();
+    if (bytes.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không đọc được dữ liệu ảnh đã chọn.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final sizeError = SessionsService.validateEvidenceSize(bytes.length);
+    if (sizeError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(sizeError)),
+      );
+      return;
+    }
+
     final captionController = TextEditingController(text: 'Ảnh minh chứng buổi học');
+    final sizeKb = (bytes.length / 1024).toStringAsFixed(1);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -209,14 +232,14 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.blue.shade200),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.image, size: 20, color: Colors.blue),
-                  SizedBox(width: 8),
+                  const Icon(Icons.image, size: 20, color: Colors.blue),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Tệp mẫu: minh_chung_buoi_hoc.jpg (~250 KB)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      '${file.name} ($sizeKb KB)',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -240,19 +263,18 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
 
     if (confirmed == true && mounted) {
       final service = ref.read(sessionsServiceProvider);
-      final mockBytes = Uint8List(250 * 1024); // 250KB <= 500KB
       final caption = captionController.text.trim();
       final evidence = await service.uploadEvidence(
         sessionId: _session.id,
-        imageBytes: mockBytes,
-        fileName: 'minh_chung_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        imageBytes: bytes,
+        fileName: file.name,
         caption: caption.isEmpty ? 'Ảnh minh chứng buổi học' : caption,
       );
 
       setState(() => _evidences.insert(0, evidence));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã tải lên minh chứng buổi học thành công (< 500KB)')),
+          const SnackBar(content: Text('Đã tải lên minh chứng buổi học thành công!')),
         );
       }
     }
@@ -481,7 +503,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
               // Mentor Report Section (SES-02, BR-09)
               if (widget.isMentor) ...[
                 Text(
-                  'Ghi nhận nội dung buổi học (Mentor)',
+                  'Báo cáo buổi học (Mentor)',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
@@ -500,7 +522,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
                   maxLines: 3,
                   readOnly: _session.isCompleted,
                   decoration: const InputDecoration(
-                    labelText: 'Nội dung kiến thức đã hướng dẫn *',
+                    labelText: 'Ghi chú *',
                     border: OutlineInputBorder(),
                   ),
                 ),

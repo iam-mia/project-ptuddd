@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/widgets/responsive_container.dart';
+import '../../room_matching/data/room_matching_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/registration_repository.dart';
 
@@ -106,6 +107,56 @@ class StudentHomeScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
+            if (profile != null) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Phòng học của tôi',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () => context.push('/rooms'),
+                    child: const Text('Tìm / Tạo phòng'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ref.watch(myRoomsProvider(profile.id)).when(
+                    data: (rooms) {
+                      if (rooms.isEmpty) {
+                        return Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.meeting_room_outlined),
+                            title: const Text('Bạn chưa tham gia phòng học nào'),
+                            subtitle: const Text('Bấm để tìm Mentor/Mentee hoặc nhập mã phòng'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => context.push('/rooms'),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: rooms.map((room) {
+                          return Card(
+                            child: ListTile(
+                              onTap: () => context.push('/rooms/${room.id}'),
+                              leading: const Icon(Icons.meeting_room_outlined),
+                              title: Text(room.name),
+                              subtitle: Text('Mã phòng: ${room.roomCode}'),
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Text('Lỗi tải phòng học: $e'),
+                  ),
+              const SizedBox(height: 24),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

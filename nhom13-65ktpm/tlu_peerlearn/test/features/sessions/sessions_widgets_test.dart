@@ -117,7 +117,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Ghi nhận nội dung buổi học (Mentor)'), findsOneWidget);
+      expect(find.text('Báo cáo buổi học (Mentor)'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('Hoàn tất báo cáo buổi học (SES-02)'),
         300,
