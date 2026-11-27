@@ -60,23 +60,54 @@ class _AdminSessionLogsScreenState
                   );
                 }
 
+                // Group logs by roomName so 10 rooms x 10 sessions stays clean
+                final Map<String, List<AdminSessionLog>> grouped = {};
+                for (final log in filtered) {
+                  grouped.putIfAbsent(log.roomName, () => []).add(log);
+                }
+                final roomNames = grouped.keys.toList();
+
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: filtered.length,
+                  itemCount: roomNames.length,
                   itemBuilder: (context, index) {
-                    final log = filtered[index];
+                    final roomName = roomNames[index];
+                    final roomLogs = grouped[roomName]!;
+                    final mentorName = roomLogs.first.mentorName;
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ExpansionTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.meeting_room_outlined),
+                        ),
                         title: Text(
-                          log.title,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          roomName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${log.roomName} • Mentor: ${log.mentorName}',
+                          'Mentor: $mentorName • ${roomLogs.length} buổi học',
                         ),
-                        childrenPadding: const EdgeInsets.all(16),
-                        children: [
+                        childrenPadding:
+                            const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        children: roomLogs.map((log) {
+                          return Card(
+                            elevation: 0,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.4),
+                            margin: const EdgeInsets.only(top: 8),
+                            child: ExpansionTile(
+                              title: Text(
+                                log.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              childrenPadding: const EdgeInsets.all(12),
+                              children: [
                           if (log.guidedContent != null &&
                               log.guidedContent!.isNotEmpty) ...[
                             Align(
@@ -165,7 +196,10 @@ class _AdminSessionLogsScreenState
                               ),
                             ),
                           ],
-                        ],
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ),
                     );
                   },

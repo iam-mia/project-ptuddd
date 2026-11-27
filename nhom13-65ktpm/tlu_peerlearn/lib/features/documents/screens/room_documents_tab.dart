@@ -239,8 +239,8 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
               ),
             ),
 
-          // Selection bar for AI generation
-          if (_selectedForAi.isNotEmpty)
+          // Selection bar for AI generation (Mentor only)
+          if (widget.isMentor && _selectedForAi.isNotEmpty)
             Container(
               color: Colors.amber.shade50,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -329,28 +329,32 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
                             MaterialPageRoute(
                               builder: (previewCtx) => DocumentPreviewScreen(
                                 document: doc,
-                                onGenerateAi: () {
-                                  Navigator.of(previewCtx).pop();
-                                  if (widget.onGenerateAi != null) {
-                                    widget.onGenerateAi!([doc]);
-                                  } else {
-                                    _openDirectAiGeneration([doc]);
-                                  }
-                                },
+                                onGenerateAi: widget.isMentor
+                                    ? () {
+                                        Navigator.of(previewCtx).pop();
+                                        if (widget.onGenerateAi != null) {
+                                          widget.onGenerateAi!([doc]);
+                                        } else {
+                                          _openDirectAiGeneration([doc]);
+                                        }
+                                      }
+                                    : null,
                               ),
                             ),
                           );
                         },
-                        onTap: () {
-                          // Toggle select for AI generation (max 2 docs BR-04)
-                          setState(() {
-                            if (_selectedForAi.contains(doc.id)) {
-                              _selectedForAi.remove(doc.id);
-                            } else if (_selectedForAi.length < 2) {
-                              _selectedForAi.add(doc.id);
-                            }
-                          });
-                        },
+                        onTap: widget.isMentor
+                            ? () {
+                                // Toggle select for AI generation (max 2 docs)
+                                setState(() {
+                                  if (_selectedForAi.contains(doc.id)) {
+                                    _selectedForAi.remove(doc.id);
+                                  } else if (_selectedForAi.length < 2) {
+                                    _selectedForAi.add(doc.id);
+                                  }
+                                });
+                              }
+                            : null,
                       );
                     },
                   ),
