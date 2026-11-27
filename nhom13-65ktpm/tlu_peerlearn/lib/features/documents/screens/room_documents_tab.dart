@@ -174,6 +174,7 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
     final docsAsync = ref.watch(roomDocumentsProvider(widget.roomId));
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F8FC),
       body: Column(
         children: [
           // Quota summary card
@@ -184,39 +185,74 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
 
           // Search & Filter header
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Tìm kiếm tài liệu...',
-                      prefixIcon: const Icon(Icons.search, size: 20),
+                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      prefixIcon: Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade600),
+                      filled: true,
+                      fillColor: Colors.white,
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF0D47A1), width: 1.5),
+                      ),
                     ),
                     onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
                   ),
                 ),
                 const SizedBox(width: 8),
-                PopupMenuButton<DocumentSortOption>(
-                  icon: const Icon(Icons.sort),
-                  tooltip: 'Sắp xếp tài liệu',
-                  onSelected: (opt) => setState(() => _sortOption = opt),
-                  itemBuilder: (context) => DocumentSortOption.values
-                      .map((opt) => PopupMenuItem(value: opt, child: Text(opt.label)))
-                      .toList(),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: PopupMenuButton<DocumentSortOption>(
+                    icon: const Icon(Icons.sort_rounded, size: 20),
+                    tooltip: 'Sắp xếp tài liệu',
+                    onSelected: (opt) => setState(() => _sortOption = opt),
+                    itemBuilder: (context) => DocumentSortOption.values
+                        .map((opt) => PopupMenuItem(value: opt, child: Text(opt.label)))
+                        .toList(),
+                  ),
                 ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.filter_list),
-                  tooltip: 'Lọc theo định dạng',
-                  onSelected: (val) => setState(() => _selectedFilter = val),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'all', child: Text('Tất cả định dạng')),
-                    const PopupMenuItem(value: 'pdf', child: Text('Chỉ tệp PDF')),
-                    const PopupMenuItem(value: 'docx', child: Text('Chỉ tệp Word (.docx)')),
-                  ],
+                const SizedBox(width: 6),
+                Container(
+                  decoration: BoxDecoration(
+                    color: _selectedFilter != 'all' ? const Color(0xFFE3F2FD) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _selectedFilter != 'all' ? const Color(0xFF1976D2) : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.filter_list_rounded,
+                      size: 20,
+                      color: _selectedFilter != 'all' ? const Color(0xFF0D47A1) : null,
+                    ),
+                    tooltip: 'Lọc theo định dạng',
+                    onSelected: (val) => setState(() => _selectedFilter = val),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'all', child: Text('Tất cả định dạng')),
+                      PopupMenuItem(value: 'pdf', child: Text('Chỉ tệp PDF')),
+                      PopupMenuItem(value: 'docx', child: Text('Chỉ tệp Word (.docx)')),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -225,13 +261,19 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
           // Filter chips indicator
           if (_selectedFilter != 'all')
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
               child: Row(
                 children: [
                   Chip(
+                    backgroundColor: const Color(0xFFE3F2FD),
+                    side: BorderSide.none,
                     label: Text(
                       _selectedFilter.toUpperCase(),
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0D47A1),
+                      ),
                     ),
                     onDeleted: () => setState(() => _selectedFilter = 'all'),
                   ),
@@ -242,21 +284,54 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
           // Selection bar for AI generation (Mentor only)
           if (widget.isMentor && _selectedForAi.isNotEmpty)
             Container(
-              color: Colors.amber.shade50,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.amber.shade50, Colors.orange.shade50],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.amber.shade400),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.shade700.withValues(alpha: 0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.auto_awesome, color: Colors.amber.shade800, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Đã chọn ${_selectedForAi.length}/2 tài liệu',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade800.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.auto_awesome, color: Colors.amber.shade900, size: 18),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Đã chọn ${_selectedForAi.length}/2 tài liệu',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _selectedForAi.clear()),
+                    child: const Text('Bỏ chọn'),
+                  ),
+                  const SizedBox(width: 4),
                   docsAsync.maybeWhen(
                     data: (docs) => FilledButton.icon(
-                      style: FilledButton.styleFrom(backgroundColor: Colors.amber.shade800),
-                      icon: const Icon(Icons.bolt, size: 16),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.amber.shade800,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.bolt_rounded, size: 18),
                       label: const Text('Tạo bài AI'),
                       onPressed: () {
                         final selected = docs.where((d) => _selectedForAi.contains(d.id)).toList();
@@ -271,6 +346,27 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
                   ),
                 ],
               ),
+            )
+          else if (widget.isMentor)
+            docsAsync.maybeWhen(
+              data: (docs) => docs.isNotEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+                      child: Row(
+                        children: [
+                          Icon(Icons.tips_and_updates_outlined, size: 15, color: Colors.amber.shade800),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Mẹo: Chạm chọn 1–2 tài liệu bên dưới để AI sinh trắc nghiệm hoặc flashcard.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+              orElse: () => const SizedBox.shrink(),
             ),
 
           // Document list
@@ -294,16 +390,40 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
 
                 if (filtered.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.folder_open, size: 56, color: Colors.grey.shade400),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Chưa có tài liệu nào trong phòng học',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE3F2FD),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.folder_open_rounded,
+                              size: 46,
+                              color: Color(0xFF0D47A1),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Chưa có tài liệu nào trong phòng học',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tải lên tệp PDF hoặc DOCX để lưu trữ và tạo bài ôn tập bằng AI.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
@@ -313,16 +433,19 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
                     ref.invalidate(roomDocumentsProvider(widget.roomId));
                   },
                   child: ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 84),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final doc = filtered[index];
                       final canDelete = widget.isMentor ||
                           (widget.currentUserId != null &&
                               doc.uploadedBy == widget.currentUserId);
+                      final isSelected = widget.isMentor && _selectedForAi.contains(doc.id);
 
                       return DocumentCard(
                         document: doc,
                         showDelete: canDelete,
+                        isSelected: isSelected,
                         onDelete: () => _confirmDelete(context, doc),
                         onPreview: () {
                           Navigator.of(context).push(
@@ -365,8 +488,11 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('Tải lên'),
+        backgroundColor: const Color(0xFF0D47A1),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.upload_file_rounded),
+        label: const Text('Tải lên', style: TextStyle(fontWeight: FontWeight.w600)),
         onPressed: () => _showUploadDialog(context),
       ),
     );

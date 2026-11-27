@@ -99,65 +99,135 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Tải lên tài liệu mới'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Chỉ chấp nhận tệp .pdf hoặc .docx với dung lượng tối đa 5MB (BR-04).',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
+    final hasFile = _selectedFileName != null && _selectedBytes != null;
 
-              // File picker placeholder buttons
-              OutlinedButton.icon(
-                icon: const Icon(Icons.upload_file),
-                label: Text(
-                  _selectedFileName != null
-                      ? 'Đã chọn: $_selectedFileName'
-                      : 'Chọn tệp từ thiết bị',
-                ),
-                onPressed: _isLoading ? null : _pickRealFile,
-              ),
-              if (_fileError != null) ...[
-                const SizedBox(height: 6),
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE3F2FD),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.cloud_upload_rounded, color: Color(0xFF0D47A1), size: 22),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Tải lên tài liệu mới',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 Text(
-                  _fileError!,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                  'Chỉ chấp nhận tệp .pdf hoặc .docx với dung lượng tối đa 5MB (BR-04).',
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+
+                // Modern dropzone-style picker box
+                InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: _isLoading ? null : _pickRealFile,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: hasFile ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: hasFile ? Colors.green.shade400 : const Color(0xFFCBD5E1),
+                        width: 1.4,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          hasFile ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                          size: 32,
+                          color: hasFile ? Colors.green.shade600 : const Color(0xFF0D47A1),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          hasFile ? 'Đã chọn: $_selectedFileName' : 'Chọn tệp từ thiết bị',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                            color: hasFile ? Colors.green.shade800 : const Color(0xFF0D47A1),
+                          ),
+                        ),
+                        if (hasFile) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${(_selectedBytes!.length / 1024).toStringAsFixed(1)} KB • Bấm để đổi tệp khác',
+                            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (_fileError != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _fileError!,
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Tên hiển thị tài liệu *',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.title_rounded),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Vui lòng nhập tên tài liệu';
+                    }
+                    return DocumentValidator.validateFileType(val);
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                TextFormField(
+                  controller: _topicController,
+                  decoration: InputDecoration(
+                    labelText: 'Chủ đề trọng tâm (tùy chọn)',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.topic_outlined),
+                  ),
                 ),
               ],
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Tên hiển thị tài liệu *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.title),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Vui lòng nhập tên tài liệu';
-                  }
-                  return DocumentValidator.validateFileType(val);
-                },
-              ),
-              const SizedBox(height: 14),
-
-              TextFormField(
-                controller: _topicController,
-                decoration: const InputDecoration(
-                  labelText: 'Chủ đề trọng tâm (tùy chọn)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.topic_outlined),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -166,15 +236,20 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           child: const Text('Hủy'),
         ),
-        FilledButton(
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          ),
           onPressed: _isLoading ? null : _submit,
-          child: _isLoading
+          icon: _isLoading
               ? const SizedBox(
-                  width: 18,
-                  height: 18,
+                  width: 16,
+                  height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Tải lên'),
+              : const Icon(Icons.check_rounded, size: 18),
+          label: const Text('Tải lên'),
         ),
       ],
     );
