@@ -300,7 +300,7 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Tiến độ tự học cá nhân (PRA-04)',
+                                'Tiến độ tự học cá nhân',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,

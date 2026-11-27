@@ -414,7 +414,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
                         Text(
                           myAttendance.menteeConfirmed
                               ? 'Thời gian xác nhận: ${myAttendance.menteeConfirmedAt?.hour}:${myAttendance.menteeConfirmedAt?.minute} ngày ${myAttendance.menteeConfirmedAt?.day}/${myAttendance.menteeConfirmedAt?.month}'
-                              : 'Mentee tự xác nhận độc lập, không chặn báo cáo của Mentor (BR-09, BR-10).',
+                              : 'Vui lòng xác nhận bạn đã tham gia buổi học này.',
                           style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
                         ),
                         if (!myAttendance.menteeConfirmed) ...[

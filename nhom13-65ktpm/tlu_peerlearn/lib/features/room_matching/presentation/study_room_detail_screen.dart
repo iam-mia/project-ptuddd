@@ -20,27 +20,14 @@ class StudyRoomDetailScreen extends ConsumerStatefulWidget {
       _StudyRoomDetailScreenState();
 }
 
-class _StudyRoomDetailScreenState extends ConsumerState<StudyRoomDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _StudyRoomDetailScreenState extends ConsumerState<StudyRoomDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final roomAsync = ref.watch(studyRoomProvider(widget.roomId));
     final profileAsync = ref.watch(currentProfileProvider);
-    final userId = profileAsync.value?.id;
+    final profile = profileAsync.value;
+    final userId = profile?.id;
+    final isAdmin = profile?.role == 'admin';
     return roomAsync.when(
       loading: () => Scaffold(
         appBar: AppBar(title: const Text('Phòng học')),
@@ -50,32 +37,38 @@ class _StudyRoomDetailScreenState extends ConsumerState<StudyRoomDetailScreen>
         appBar: AppBar(title: const Text('Phòng học')),
         body: Center(child: Text('Không thể tải phòng học: $error')),
       ),
-      data: (room) => _buildRoomTabs(room, userId),
+      data: (room) => _buildRoomTabs(room, userId, isAdmin: isAdmin),
     );
   }
 
-  Widget _buildRoomTabs(StudyRoom room, String? userId) {
+  Widget _buildRoomTabs(
+    StudyRoom room,
+    String? userId, {
+    required bool isAdmin,
+  }) {
     final isMentor = room.mentorId == userId;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(room.name),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
+    final tabs = isAdmin
+        ? const [
+            Tab(text: 'Tổng quan / Thành viên'),
+            Tab(text: 'Buổi học'),
+          ]
+        : const [
             Tab(text: 'Tổng quan / Thành viên'),
             Tab(text: 'Tài liệu'),
             Tab(text: 'Ôn tập'),
             Tab(text: 'Buổi học'),
-          ],
-        ),
-      ),
-      body: ResponsiveContainer(
-        maxWidth: 960,
-        padding: EdgeInsets.zero,
-        child: TabBarView(
-          controller: _tabController,
-          children: [
+          ];
+
+    final tabViews = isAdmin
+        ? [
+            _RoomOverview(room: room, currentUserId: userId),
+            RoomSessionsTab(
+              roomId: room.id,
+              currentUserId: userId,
+              isMentor: false,
+            ),
+          ]
+        : [
             _RoomOverview(room: room, currentUserId: userId),
             RoomDocumentsTab(
               roomId: room.id,
@@ -92,7 +85,22 @@ class _StudyRoomDetailScreenState extends ConsumerState<StudyRoomDetailScreen>
               currentUserId: userId,
               isMentor: isMentor,
             ),
-          ],
+          ];
+
+    return DefaultTabController(
+      length: tabs.length,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(room.name),
+          bottom: TabBar(
+            isScrollable: true,
+            tabs: tabs,
+          ),
+        ),
+        body: ResponsiveContainer(
+          maxWidth: 960,
+          padding: EdgeInsets.zero,
+          child: TabBarView(children: tabViews),
         ),
       ),
     );
@@ -113,7 +121,12 @@ class _RoomOverview extends ConsumerWidget {
       error: (error, _) => Center(child: Text('Lỗi tải thành viên: $error')),
       data: (members) {
         final mentors = members.where((m) => m.role == 'mentor').toList();
-        final mentees = members.where((m) => m.role != 'mentor').toList();
+        final mentees = members.where((m) => m.role != 'mentor').toList()
+          ..sort((a, b) {
+            if (a.userId == currentUserId) return -1;
+            if (b.userId == currentUserId) return 1;
+            return 0;
+          });
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(roomMembersProvider(room.id)),
           child: ListView(
@@ -156,6 +169,7 @@ class _RoomOverview extends ConsumerWidget {
                 ...mentors.map(
                   (member) => _MemberTile(
                     member: member,
+                    isCurrentUser: member.userId == currentUserId,
                     canManage: false,
                     onRemove: () {},
                   ),
@@ -171,6 +185,7 @@ class _RoomOverview extends ConsumerWidget {
               ...mentees.map(
                 (member) => _MemberTile(
                   member: member,
+                  isCurrentUser: member.userId == currentUserId,
                   canManage:
                       currentUserId == room.mentorId &&
                       member.userId != room.mentorId,
@@ -226,11 +241,13 @@ class _RoomOverview extends ConsumerWidget {
 
 class _MemberTile extends StatelessWidget {
   final RoomMember member;
+  final bool isCurrentUser;
   final bool canManage;
   final VoidCallback onRemove;
 
   const _MemberTile({
     required this.member,
+    this.isCurrentUser = false,
     required this.canManage,
     required this.onRemove,
   });
@@ -240,6 +257,15 @@ class _MemberTile extends StatelessWidget {
     final isMentor = member.role == 'mentor';
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
+      color: isCurrentUser
+          ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+          : null,
+      shape: isCurrentUser
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: colorScheme.primary, width: 1.5),
+            )
+          : null,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor:
@@ -253,7 +279,32 @@ class _MemberTile extends StatelessWidget {
         ),
         title: Row(
           children: [
-            Flexible(child: Text(member.fullName ?? member.userId)),
+            Flexible(
+              child: Text(
+                member.fullName ?? member.userId,
+                style: isCurrentUser
+                    ? const TextStyle(fontWeight: FontWeight.bold)
+                    : null,
+              ),
+            ),
+            if (isCurrentUser) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Bạn',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onPrimary,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
