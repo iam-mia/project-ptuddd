@@ -41,53 +41,52 @@ serve(async (req) => {
     }
 
     const isQuiz = contentType === "quiz";
-    const systemPrompt = `Bạn là trợ lý AI chuyên môn học tập của trường Đại học Thủy Lợi (TLU). Hãy tạo chính xác ${count} ${
-      isQuiz ? "câu hỏi trắc nghiệm 4 lựa chọn (Quiz)" : "thẻ ghi nhớ (Flashcard)"
-    } từ tài liệu được cung cấp. Mức độ khó: ${difficulty}. Chủ đề: ${topic || "Toàn bộ"}. Toàn bộ câu hỏi, giải thích và nội dung phải bằng Tiếng Việt chuẩn.`;
+    const systemPrompt = `Bạn là trợ lý AI chuyên môn học tập của trường Đại học Thủy Lợi (TLU). Hãy tạo chính xác ${count} ${isQuiz ? "câu hỏi trắc nghiệm 4 lựa chọn (Quiz)" : "thẻ ghi nhớ (Flashcard)"
+      } từ tài liệu được cung cấp. Mức độ khó: ${difficulty}. Chủ đề: ${topic || "Toàn bộ"}. Toàn bộ câu hỏi, giải thích và nội dung phải bằng Tiếng Việt chuẩn.`;
 
     // Structured JSON Schema for Gemini
     const responseSchema = isQuiz
       ? {
-          type: "OBJECT",
-          properties: {
-            questions: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  question_text: { type: "STRING" },
-                  options: { type: "ARRAY", items: { type: "STRING" } },
-                  correct_index: { type: "INTEGER" },
-                  explanation: { type: "STRING" },
-                  topic: { type: "STRING" },
-                },
-                required: ["question_text", "options", "correct_index"],
+        type: "OBJECT",
+        properties: {
+          questions: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                question_text: { type: "STRING" },
+                options: { type: "ARRAY", items: { type: "STRING" } },
+                correct_index: { type: "INTEGER" },
+                explanation: { type: "STRING" },
+                topic: { type: "STRING" },
               },
+              required: ["question_text", "options", "correct_index"],
             },
           },
-          required: ["questions"],
-        }
+        },
+        required: ["questions"],
+      }
       : {
-          type: "OBJECT",
-          properties: {
-            flashcards: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  front_text: { type: "STRING" },
-                  back_text: { type: "STRING" },
-                  explanation: { type: "STRING" },
-                  topic: { type: "STRING" },
-                },
-                required: ["front_text", "back_text"],
+        type: "OBJECT",
+        properties: {
+          flashcards: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                front_text: { type: "STRING" },
+                back_text: { type: "STRING" },
+                explanation: { type: "STRING" },
+                topic: { type: "STRING" },
               },
+              required: ["front_text", "back_text"],
             },
           },
-          required: ["flashcards"],
-        };
+        },
+        required: ["flashcards"],
+      };
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiApiKey}`;
 
     const geminiRes = await fetch(endpoint, {
       method: "POST",

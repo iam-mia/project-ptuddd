@@ -117,13 +117,13 @@ void main() {
         ),
       );
 
-      expect(find.text('Báo cáo buổi học (Mentor)'), findsOneWidget);
+      expect(find.text('Ghi chú buổi học (Mentor)'), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.text('Hoàn tất báo cáo buổi học (SES-02)'),
+        find.text('Hoàn tất buổi học'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('Hoàn tất báo cáo buổi học (SES-02)'), findsOneWidget);
+      expect(find.text('Hoàn tất buổi học'), findsOneWidget);
     });
   });
 }

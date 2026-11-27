@@ -249,6 +249,29 @@ class AiGeneratorService {
     }).eq('id', setId);
   }
 
+  /// Updates metadata (title, difficulty, topic) of a generated set
+  Future<void> updateSetMetadata(
+    String setId, {
+    required String title,
+    required String difficulty,
+    String? topic,
+  }) async {
+    if (_client == null) return;
+
+    await _client.from(setsTable).update({
+      'title': title,
+      'difficulty': difficulty,
+      'topic': topic,
+    }).eq('id', setId);
+  }
+
+  /// Deletes a generated set (draft or published)
+  Future<void> deleteSet(String setId) async {
+    if (_client == null) return;
+
+    await _client.from(setsTable).delete().eq('id', setId);
+  }
+
   /// Fetches all generated sets for a room
   Future<List<GeneratedSet>> fetchSets(String roomId) async {
     if (_client == null) return [];
