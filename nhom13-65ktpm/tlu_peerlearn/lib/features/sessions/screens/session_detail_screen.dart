@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/responsive_container.dart';
+import '../../documents/utils/file_downloader.dart';
 import '../models/tutoring_session.dart';
 import '../services/sessions_service.dart';
 
@@ -97,9 +98,9 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   }
 
   Future<void> _saveMentorReport() async {
-    if (_guidedContentController.text.trim().isEmpty) {
+    if (_evidences.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập ghi chú buổi học')),
+        const SnackBar(content: Text('Vui lòng tải lên ảnh minh chứng buổi học')),
       );
       return;
     }
@@ -126,6 +127,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
         );
         _isSavingReport = false;
       });
+      ref.invalidate(roomSessionsProvider(_session.roomId));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -179,10 +181,18 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
 
   Future<void> _showUploadEvidenceDialog() async {
     final files = await FilePicker.pickFiles(
-      type: FileType.image,
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png'],
     );
     if (files.isEmpty || !mounted) return;
     final file = files.single;
+    final formatError = SessionsService.validateEvidenceFormat(file.name);
+    if (formatError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatError)),
+      );
+      return;
+    }
     final bytes = await file.xFile.readAsBytes();
     if (bytes.isEmpty) {
       if (!mounted) return;
@@ -271,7 +281,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
         caption: caption.isEmpty ? 'Ảnh minh chứng buổi học' : caption,
       );
 
-      setState(() => _evidences.insert(0, evidence));
+      setState(() => _evidences = [evidence]);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã tải lên minh chứng buổi học thành công!')),
@@ -471,14 +481,16 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Minh chứng buổi học (ảnh < 500KB)',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      'Minh chứng buổi học (JPG, JPEG, PNG < 500KB)',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   if (widget.isMentor && !_session.isCompleted)
                     OutlinedButton.icon(
                       icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
-                      label: const Text('Thêm ảnh'),
+                      label: Text(_evidences.isEmpty ? 'Thêm ảnh' : 'Thay đổi ảnh'),
                       onPressed: _showUploadEvidenceDialog,
                     ),
                 ],
@@ -487,62 +499,30 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
               if (_evidences.isEmpty)
                 Text('Chưa có ảnh minh chứng nào.', style: TextStyle(color: Colors.grey.shade600))
               else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _evidences.map((e) {
-                    return Chip(
-                      avatar: const Icon(Icons.image, size: 18),
-                      label: Text(e.caption ?? 'Minh chứng'),
-                    );
-                  }).toList(),
+                ActionChip(
+                  avatar: const Icon(Icons.download_outlined, size: 18),
+                  label: Text('${_evidences.first.caption ?? 'Minh chứng'} (Bấm để tải xuống)'),
+                  onPressed: () => downloadFileFromUrl(
+                    url: _evidences.first.imageUrl,
+                    fileName: '${_evidences.first.caption ?? 'minh_chung'}.jpg',
+                  ),
                 ),
 
               const SizedBox(height: 24),
 
-              // Mentor Report Section (SES-02, BR-09)
+              // Mentor Notes Section (SES-02, BR-09)
               if (widget.isMentor) ...[
                 Text(
-                  'Báo cáo buổi học (Mentor)',
+                  'Ghi chú buổi học (Mentor)',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                TextFormField(
-                  controller: _durationController,
-                  keyboardType: TextInputType.number,
-                  readOnly: _session.isCompleted,
-                  decoration: const InputDecoration(
-                    labelText: 'Thời lượng thực tế (phút) *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
                 TextFormField(
                   controller: _guidedContentController,
                   maxLines: 3,
                   readOnly: _session.isCompleted,
                   decoration: const InputDecoration(
-                    labelText: 'Ghi chú *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _outcomesController,
-                  maxLines: 2,
-                  readOnly: _session.isCompleted,
-                  decoration: const InputDecoration(
-                    labelText: 'Kết quả đạt được',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _issuesController,
-                  maxLines: 2,
-                  readOnly: _session.isCompleted,
-                  decoration: const InputDecoration(
-                    labelText: 'Vấn đề còn tồn tại',
+                    labelText: 'Ghi chú buổi học (tùy chọn)',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -556,7 +536,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Hoàn tất báo cáo buổi học (SES-02)'),
+                        : const Text('Hoàn tất buổi học'),
                     onPressed: _isSavingReport ? null : _saveMentorReport,
                   ),
               ],

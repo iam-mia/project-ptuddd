@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../models/document_item.dart';
 import '../models/document_sort_option.dart';
 import '../services/document_service.dart';
+import '../utils/docx_byte_extractor.dart';
+import '../utils/text_extractor.dart';
 import '../widgets/document_card.dart';
 import '../widgets/document_quota_card.dart';
 import '../widgets/document_upload_dialog.dart';
@@ -101,10 +104,16 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
           required difficulty,
           topic,
         }) async {
-          final docSummary = selectedDocs
+          final chosenDocs = selectedDocs
               .where((d) => documentIds.contains(d.id))
+              .toList();
+          final extracted = await _extractContextFromDocuments(chosenDocs);
+          final docSummary = chosenDocs
               .map((d) => '${d.fileName}${d.topic != null ? " (${d.topic})" : ""}')
               .join('; ');
+          final contextText = extracted.isNotEmpty
+              ? extracted
+              : (docSummary.isNotEmpty ? docSummary : 'Tài liệu phòng học TLU.');
           generatedResult = await service.generateContent(
             roomId: widget.roomId,
             createdBy: widget.currentUserId ?? 'current_user',
@@ -114,7 +123,7 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
             difficulty: difficulty,
             topic: topic,
             documentIds: documentIds,
-            documentContext: docSummary.isNotEmpty ? docSummary : 'Tài liệu phòng học TLU.',
+            documentContext: contextText,
           );
         },
       ),
@@ -135,6 +144,29 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
         ),
       );
     }
+  }
+
+  Future<String> _extractContextFromDocuments(List<DocumentItem> docs) async {
+    final buffer = StringBuffer();
+    for (final doc in docs) {
+      if (doc.fileUrl.isEmpty || !doc.fileUrl.startsWith('http')) continue;
+      try {
+        final res = await http.get(Uri.parse(doc.fileUrl));
+        if (res.statusCode != 200 || res.bodyBytes.isEmpty) continue;
+        final lower = doc.fileName.toLowerCase();
+        String text = '';
+        if (lower.endsWith('.docx')) {
+          text = await DocxByteExtractor.extractTextFromDocxBytes(res.bodyBytes);
+        }
+        if (text.trim().isNotEmpty) {
+          buffer.writeln('--- ${doc.fileName} ---');
+          buffer.writeln(TextExtractor.cleanText(text));
+        }
+      } catch (_) {
+        // Skip unreadable document and continue with remaining ones
+      }
+    }
+    return TextExtractor.truncateToLimit(buffer.toString().trim());
   }
 
   @override

@@ -150,6 +150,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   children: filtered.map((room) {
                     return Card(
                       child: ListTile(
+                        onTap: () => context.push('/rooms/${room.id}'),
                         title: Text(room.name,
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(

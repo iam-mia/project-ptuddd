@@ -33,6 +33,16 @@ class SessionsService {
   static const String evidenceBucket = 'session-evidences';
 
   static const int maxEvidenceSize = 500 * 1024; // 500KB (BR-04, BUSINESS_RULES)
+  static const List<String> allowedEvidenceExtensions = ['.jpg', '.jpeg', '.png'];
+
+  /// Validates evidence image format (only JPG, JPEG, PNG)
+  static String? validateEvidenceFormat(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (!allowedEvidenceExtensions.any((ext) => lower.endsWith(ext))) {
+      return 'Chỉ chấp nhận ảnh định dạng JPG, JPEG hoặc PNG.';
+    }
+    return null;
+  }
 
   /// Validates evidence image size (must be <= 500KB)
   static String? validateEvidenceSize(int sizeInBytes) {
@@ -252,15 +262,22 @@ class SessionsService {
     }).eq('session_id', sessionId).eq('mentee_id', menteeId);
   }
 
-  /// Uploads session evidence image (SES-02, max 500KB)
+  /// Uploads session evidence image (SES-02, max 1 image, JPG/JPEG/PNG, <= 500KB)
   Future<SessionEvidence> uploadEvidence({
     required String sessionId,
     required Uint8List imageBytes,
     required String fileName,
     String? caption,
   }) async {
+    final formatError = validateEvidenceFormat(fileName);
+    if (formatError != null) throw ArgumentError(formatError);
     final sizeError = validateEvidenceSize(imageBytes.length);
     if (sizeError != null) throw ArgumentError(sizeError);
+
+    if (_client != null) {
+      // Keep only 1 evidence image per session
+      await _client.from(evidencesTable).delete().eq('session_id', sessionId);
+    }
 
     if (_client == null) {
       return SessionEvidence(
