@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/widgets/responsive_container.dart';
+import '../../notifications/screens/notifications_screen.dart';
+import '../../notifications/services/notification_service.dart';
 import '../../room_matching/data/room_matching_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/registration_repository.dart';
@@ -19,6 +21,31 @@ class StudentHomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('TLU PeerLearn'),
         actions: [
+          if (profile != null)
+            Consumer(
+              builder: (context, ref, _) {
+                final notifs =
+                    ref.watch(userNotificationsProvider(profile.id)).value ??
+                        [];
+                final unread = notifs.where((n) => !n.isRead).length;
+                return IconButton(
+                  tooltip: 'Thông báo',
+                  icon: Badge(
+                    isLabelVisible: unread > 0,
+                    label: Text('$unread'),
+                    child: const Icon(Icons.notifications_outlined),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            NotificationsScreen(userId: profile.id),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: 'Hồ sơ cá nhân',

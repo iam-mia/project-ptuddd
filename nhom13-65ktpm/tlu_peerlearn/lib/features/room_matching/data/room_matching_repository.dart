@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../notifications/services/notification_service.dart';
+
 import '../../../core/supabase/supabase_provider.dart';
 import '../../auth_profile/domain/program_registration.dart';
 import '../domain/compatibility_match.dart';
@@ -352,9 +354,18 @@ class RoomMatchingRepository {
       throw StateError('Mã phòng không tồn tại');
     }
     final room = StudyRoom.fromJson(response);
-    if (!room.isOpen) throw StateError('Phòng học đã đóng');
-    final role = room.mentorId == userId ? 'mentor' : 'mentee';
-    await _addRoomMember(room: room, userId: userId, role: role);
+    await _client.from('ck_room_members').upsert({
+      'room_id': room.id,
+      'user_id': userId,
+      'role': 'mentee',
+    }, onConflict: 'room_id,user_id');
+    await NotificationService().createNotification(
+      userId: room.mentorId,
+      title: 'Học viên mới tham gia phòng',
+      body: 'Có học viên vừa tham gia phòng "${room.name}" bằng mã phòng.',
+      type: 'joined',
+      roomId: room.id,
+    );
     return room;
   }
 
@@ -393,6 +404,13 @@ class RoomMatchingRepository {
       'receiver_id': receiverId,
       'type': 'invite',
     });
+    await NotificationService().createNotification(
+      userId: receiverId,
+      title: 'Lời mời tham gia phòng học',
+      body: 'Bạn nhận được lời mời tham gia phòng học mới từ Mentor.',
+      type: 'invitation',
+      roomId: roomId,
+    );
   }
 
   Future<void> requestToJoin({
@@ -493,36 +511,29 @@ class RoomMatchingRepository {
       throw StateError('Lời mời không còn ở trạng thái chờ xử lý');
     }
     if (!accept) return;
-    final menteeId = type == 'request' ? senderId : responderId;
-    try {
-      await _ensureCourseRegistration(
-        userId: menteeId,
-        courseId: room.courseId,
-        role: 'mentee',
+    final menteeId = response['type'] == 'request'
+        ? response['sender_id']
+        : response['receiver_id'];
+    await _client.from('ck_room_members').upsert({
+      'room_id': response['room_id'],
+      'user_id': menteeId,
+      'role': 'mentee',
+    }, onConflict: 'room_id,user_id');
+    final roomId = response['room_id'] as String?;
+    final senderId = response['sender_id'] as String?;
+    if (senderId != null) {
+      final isRequest = response['type'] == 'request';
+      await NotificationService().createNotification(
+        userId: senderId,
+        title: isRequest
+            ? 'Yêu cầu tham gia được chấp nhận'
+            : 'Mentee đã chấp nhận lời mời',
+        body: isRequest
+            ? 'Mentor đã duyệt yêu cầu tham gia phòng học của bạn.'
+            : 'Một học viên đã chấp nhận lời mời tham gia phòng học.',
+        type: 'accepted',
+        roomId: roomId,
       );
-      await _addRoomMember(room: room, userId: menteeId, role: 'mentee');
-    } catch (error) {
-      try {
-        final reverted = await _client
-            .from('ck_room_invitations')
-            .update({
-              'status': 'pending',
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('id', invitationId)
-            .eq('status', 'accepted')
-            .select()
-            .maybeSingle();
-        if (reverted == null) {
-          throw StateError('Không khôi phục được trạng thái lời mời');
-        }
-      } on PostgrestException catch (rollbackError) {
-        throw StateError(
-          'Không thể thêm thành viên ($error), đồng thời không thể khôi phục '
-          'trạng thái lời mời ($rollbackError)',
-        );
-      }
-      rethrow;
     }
   }
 
