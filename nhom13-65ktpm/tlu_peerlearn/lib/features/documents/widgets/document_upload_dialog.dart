@@ -135,7 +135,7 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Chỉ chấp nhận tệp .pdf hoặc .docx với dung lượng tối đa 5MB (BR-04).',
+                  'Chỉ chấp nhận tệp .pdf hoặc .docx với dung lượng tối đa 5MB.',
                   style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
                 ),
                 const SizedBox(height: 16),

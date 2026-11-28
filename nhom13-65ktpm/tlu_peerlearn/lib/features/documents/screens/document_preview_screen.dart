@@ -283,16 +283,17 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                             label: const Text('Tải về máy'),
                             onPressed: () => _handleDownload(context),
                           ),
-                          FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.amber.shade800,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          if (widget.onGenerateAi != null)
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.amber.shade800,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              ),
+                              icon: const Icon(Icons.auto_awesome, size: 18),
+                              label: const Text('Tạo đề AI', style: TextStyle(fontWeight: FontWeight.w600)),
+                              onPressed: widget.onGenerateAi,
                             ),
-                            icon: const Icon(Icons.auto_awesome, size: 18),
-                            label: const Text('Tạo đề AI', style: TextStyle(fontWeight: FontWeight.w600)),
-                            onPressed: widget.onGenerateAi,
-                          ),
                         ],
                       ),
                     ],
@@ -383,7 +384,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Nội dung trích xuất (Tối đa 15.000 ký tự cho AI - BR-04)',
+                                'Nội dung trích xuất',
                                 style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ),

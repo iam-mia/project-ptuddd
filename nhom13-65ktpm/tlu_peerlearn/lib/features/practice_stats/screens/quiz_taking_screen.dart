@@ -324,22 +324,38 @@ class _QuizTakingScreenState extends ConsumerState<QuizTakingScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton.icon(
-            icon: const Icon(Icons.send_rounded),
-            label: _isSubmitting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text('Nộp bài kiểm tra'),
-            onPressed: (_isSubmitting || _questions.isEmpty) ? null : () => _submitQuiz(),
-          ),
-        ),
-      ),
+      bottomNavigationBar: _isLoading
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  heightFactor: 1.0,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 780),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.send_rounded),
+                        label: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Nộp bài kiểm tra'),
+                        onPressed: (_isSubmitting || _questions.isEmpty)
+                            ? null
+                            : () => _submitQuiz(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
@@ -402,7 +418,7 @@ class _QuizTakingScreenState extends ConsumerState<QuizTakingScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Chi tiết đáp án & giải thích (PRA-02):',
+                'Chi tiết đáp án & giải thích:',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 12),
@@ -504,7 +520,8 @@ class _QuizTakingScreenState extends ConsumerState<QuizTakingScreen> {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        child: Padding(
+        child: ResponsiveContainer(
+          maxWidth: 780,
           padding: const EdgeInsets.all(16),
           child: FilledButton(
             onPressed: () => Navigator.of(context).pop(),

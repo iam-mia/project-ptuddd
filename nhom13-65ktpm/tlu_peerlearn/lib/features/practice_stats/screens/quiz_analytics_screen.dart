@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/widgets/responsive_container.dart';
 import '../../ai_generator/models/generated_set.dart';
 import '../../ai_generator/models/quiz_question_item.dart';
@@ -27,6 +28,7 @@ class QuizAnalyticsScreen extends ConsumerStatefulWidget {
 
 class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
   QuizAnalyticsSummary? _summary;
+  Map<String, String> _userNames = {};
   bool _isLoading = true;
 
   @override
@@ -47,9 +49,28 @@ class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
         await service.fetchQuizQuestions(widget.quizId);
     final summary = await service.fetchQuizAnalytics(widget.quizId, questions);
 
+    final Map<String, String> names = {};
+    final userIds = summary.recentAttempts.map((a) => a.userId).toSet().toList();
+    if (userIds.isNotEmpty) {
+      try {
+        final rows = await Supabase.instance.client
+            .from('profiles')
+            .select('id, full_name')
+            .inFilter('id', userIds);
+        for (final r in rows as List<dynamic>) {
+          final id = r['id'] as String?;
+          final name = r['full_name'] as String?;
+          if (id != null && name != null && name.isNotEmpty) {
+            names[id] = name;
+          }
+        }
+      } catch (_) {}
+    }
+
     if (mounted) {
       setState(() {
         _summary = summary;
+        _userNames = names;
         _isLoading = false;
       });
     }
@@ -78,7 +99,7 @@ class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
             children: [
               // Overview statistics (PRA-03)
               Text(
-                'Tổng quan kết quả phòng (PRA-03)',
+                'Tổng quan kết quả phòng',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
@@ -116,7 +137,71 @@ class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
 
               const SizedBox(height: 24),
 
-              // Per-question accuracy rate (PRA-03)
+              // Score distribution chart
+              if (summary.recentAttempts.isNotEmpty) ...[
+                Text(
+                  'Phân bố mức điểm',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _ScoreDistributionCard(attempts: summary.recentAttempts),
+                const SizedBox(height: 24),
+
+                Text(
+                  'Điểm chi tiết từng học viên (${summary.recentAttempts.length} lượt nộp)',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: Column(
+                    children: summary.recentAttempts.map((a) {
+                      final color = a.score >= 8.0
+                          ? Colors.green
+                          : (a.score >= 5.0 ? Colors.orange : Colors.red);
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.15),
+                          child: Icon(Icons.person_outline, color: color),
+                        ),
+                        title: Text(
+                          _userNames[a.userId] ?? 'Học viên',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          'Nộp lúc: ${a.submittedAt.hour.toString().padLeft(2, '0')}:${a.submittedAt.minute.toString().padLeft(2, '0')} ${a.submittedAt.day}/${a.submittedAt.month}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${a.score.toStringAsFixed(1)}/10',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // Per-question accuracy rate
               Text(
                 'Tỷ lệ trả lời đúng theo từng câu hỏi',
                 style: Theme.of(context)
@@ -289,6 +374,84 @@ class _MetricCard extends StatelessWidget {
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _ScoreDistributionCard extends StatelessWidget {
+  final List<QuizAttempt> attempts;
+
+  const _ScoreDistributionCard({required this.attempts});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = attempts.length;
+    final excellent = attempts.where((a) => a.score >= 8.0).length;
+    final good = attempts.where((a) => a.score >= 6.5 && a.score < 8.0).length;
+    final average =
+        attempts.where((a) => a.score >= 5.0 && a.score < 6.5).length;
+    final weak = attempts.where((a) => a.score < 5.0).length;
+
+    final buckets = [
+      ('Giỏi (8.0 - 10)', excellent, Colors.green),
+      ('Khá (6.5 - 7.9)', good, Colors.blue),
+      ('Trung bình (5.0 - 6.4)', average, Colors.orange),
+      ('Cần cố gắng (< 5.0)', weak, Colors.red),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: buckets.map((b) {
+            final label = b.$1;
+            final count = b.$2;
+            final color = b.$3;
+            final ratio = total == 0 ? 0.0 : count / total;
+            final pct = (ratio * 100).round();
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '$count người ($pct%)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: ratio,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ),
     );

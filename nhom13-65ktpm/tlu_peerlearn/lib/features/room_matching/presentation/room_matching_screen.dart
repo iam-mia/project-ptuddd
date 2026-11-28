@@ -228,6 +228,8 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
         appBar: AppBar(
           title: const Text('Gợi ý kết nối & Phòng học'),
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.center,
             tabs: [
               Tab(text: 'Gợi ý'),
               Tab(text: 'Lời mời'),
@@ -424,15 +426,19 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            if (alreadyInCourseRoom)
-                              const Tooltip(
-                                message: 'Bạn đã tham gia phòng học cho học phần này',
-                                child: Icon(
-                                  Icons.check_circle,
-                                  color: Colors.green,
+                            if (alreadyInCourseRoom) ...[
+                              if (myRooms.any((r) =>
+                                  r.courseId == registration.courseId &&
+                                  r.mentorId == match.userId))
+                                const Tooltip(
+                                  message:
+                                      'Bạn đã tham gia phòng học của Mentor này',
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
                                 ),
-                              )
-                            else
+                            ] else
                               IconButton(
                                 tooltip: registration.role == 'mentor'
                                     ? 'Mời vào phòng'

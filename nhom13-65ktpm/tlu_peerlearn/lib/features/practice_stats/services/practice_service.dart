@@ -331,6 +331,78 @@ class PracticeService {
     }
   }
 
+  /// Fetches latest quiz scores per set_id for a user
+  Future<Map<String, double>> fetchUserQuizScores(String userId) async {
+    if (_client == null) return {};
+    try {
+      final rows = await _client
+          .from('quiz_attempts')
+          .select('score, submitted_at, quizzes!inner(set_id)')
+          .eq('user_id', userId)
+          .order('submitted_at', ascending: false);
+
+      final Map<String, double> scores = {};
+      for (final row in rows as List<dynamic>) {
+        final quizObj = row['quizzes'] as Map<String, dynamic>?;
+        final setId = quizObj?['set_id'] as String?;
+        final score = (row['score'] as num?)?.toDouble();
+        if (setId != null && score != null && !scores.containsKey(setId)) {
+          scores[setId] = score;
+        }
+      }
+      return scores;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Fetches flashcard progress (remembered, total) per set_id for a user
+  Future<Map<String, ({int remembered, int total})>>
+      fetchUserFlashcardProgressBySet(String userId, List<String> setIds) async {
+    if (_client == null || setIds.isEmpty) return {};
+    try {
+      final cardRows = await _client
+          .from('flashcards')
+          .select('id, set_id')
+          .inFilter('set_id', setIds);
+
+      final Map<String, List<String>> cardsBySet = {};
+      final List<String> allCardIds = [];
+      for (final r in cardRows as List<dynamic>) {
+        final id = r['id'] as String?;
+        final setId = r['set_id'] as String?;
+        if (id != null && setId != null) {
+          cardsBySet.putIfAbsent(setId, () => []).add(id);
+          allCardIds.add(id);
+        }
+      }
+
+      final Set<String> rememberedIds = {};
+      if (allCardIds.isNotEmpty) {
+        final progRows = await _client
+            .from('flashcard_progress')
+            .select('flashcard_id, is_remembered')
+            .eq('user_id', userId)
+            .eq('is_remembered', true)
+            .inFilter('flashcard_id', allCardIds);
+        for (final p in progRows as List<dynamic>) {
+          final fid = p['flashcard_id'] as String?;
+          if (fid != null) rememberedIds.add(fid);
+        }
+      }
+
+      final Map<String, ({int remembered, int total})> result = {};
+      for (final setId in setIds) {
+        final ids = cardsBySet[setId] ?? [];
+        final rem = ids.where((id) => rememberedIds.contains(id)).length;
+        result[setId] = (remembered: rem, total: ids.length);
+      }
+      return result;
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// Fetches personal practice summary (PRA-04)
   Future<PersonalPracticeSummary> fetchPersonalSummary(String userId) async {
     if (_client == null) {
@@ -345,16 +417,24 @@ class PracticeService {
     try {
       final attemptsRes = await _client
           .from(attemptsTable)
-          .select('score')
-          .eq('user_id', userId);
+          .select('quiz_id, score, submitted_at')
+          .eq('user_id', userId)
+          .order('submitted_at', ascending: false);
 
-      final attemptsList = attemptsRes as List<dynamic>;
-      final totalQuizzes = attemptsList.length;
+      final Map<String, double> latestByQuiz = {};
+      for (final row in attemptsRes as List<dynamic>) {
+        final qId = row['quiz_id'] as String?;
+        final score = (row['score'] as num?)?.toDouble();
+        if (qId != null && score != null && !latestByQuiz.containsKey(qId)) {
+          latestByQuiz[qId] = score;
+        }
+      }
+
+      final totalQuizzes = latestByQuiz.length;
       double avgScore = 0.0;
       if (totalQuizzes > 0) {
-        final total = attemptsList.fold<double>(
-            0.0, (acc, a) => acc + ((a['score'] as num?)?.toDouble() ?? 0.0));
-        avgScore = double.parse((total / totalQuizzes).toStringAsFixed(2));
+        final sum = latestByQuiz.values.fold<double>(0.0, (a, b) => a + b);
+        avgScore = double.parse((sum / totalQuizzes).toStringAsFixed(1));
       }
 
       final progressRes = await _client

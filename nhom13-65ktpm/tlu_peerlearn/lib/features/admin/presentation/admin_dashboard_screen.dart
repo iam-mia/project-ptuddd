@@ -69,43 +69,88 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 statsAsync.when(
-                  data: (stats) => GridView(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 260,
-                      mainAxisExtent: 100,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _StatCard(
-                          label: 'Mentor',
-                          value: '${stats.totalMentors}',
-                          icon: Icons.school_outlined),
-                      _StatCard(
-                          label: 'Mentee',
-                          value: '${stats.totalMentees}',
-                          icon: Icons.people_outline),
-                      _StatCard(
-                          label: 'Tổng phòng học',
-                          value: '${stats.totalRooms}',
-                          icon: Icons.meeting_room_outlined),
-                      _StatCard(
-                          label: 'Phòng đang học',
-                          value: '${stats.activeRooms}',
-                          icon: Icons.groups_outlined),
-                      _StatCard(
-                          label: 'Tổng buổi học',
-                          value: '${stats.totalSessions}',
-                          icon: Icons.event_note_outlined),
-                      _StatCard(
-                          label: 'Buổi đã hoàn thành',
-                          value: '${stats.completedSessions}',
-                          icon: Icons.verified_outlined),
-                    ],
-                  ),
+                  data: (stats) {
+                    final roomActiveRate = stats.totalRooms == 0
+                        ? 0.0
+                        : stats.activeRooms / stats.totalRooms;
+                    final sessionDoneRate = stats.totalSessions == 0
+                        ? 0.0
+                        : stats.completedSessions / stats.totalSessions;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        GridView(
+                          gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 260,
+                            mainAxisExtent: 100,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            _StatCard(
+                                label: 'Mentor',
+                                value: '${stats.totalMentors}',
+                                icon: Icons.school_outlined),
+                            _StatCard(
+                                label: 'Mentee',
+                                value: '${stats.totalMentees}',
+                                icon: Icons.people_outline),
+                            _StatCard(
+                                label: 'Tổng phòng học',
+                                value: '${stats.totalRooms}',
+                                icon: Icons.meeting_room_outlined),
+                            _StatCard(
+                                label: 'Phòng đang học',
+                                value: '${stats.activeRooms}',
+                                icon: Icons.groups_outlined),
+                            _StatCard(
+                                label: 'Tổng buổi học',
+                                value: '${stats.totalSessions}',
+                                icon: Icons.event_note_outlined),
+                            _StatCard(
+                                label: 'Buổi đã hoàn thành',
+                                value: '${stats.completedSessions}',
+                                icon: Icons.verified_outlined),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Tỉ lệ hoạt động & hoàn thành',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _AdminProgressBar(
+                                  label:
+                                      'Phòng đang hoạt động (${stats.activeRooms}/${stats.totalRooms})',
+                                  ratio: roomActiveRate,
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(height: 10),
+                                _AdminProgressBar(
+                                  label:
+                                      'Buổi học đã hoàn thành (${stats.completedSessions}/${stats.totalSessions})',
+                                  ratio: sessionDoneRate,
+                                  color: Colors.green,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Text('Lỗi tải thống kê: $e'),
@@ -220,6 +265,53 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class _AdminProgressBar extends StatelessWidget {
+  final String label;
+  final double ratio;
+  final Color color;
+
+  const _AdminProgressBar({
+    required this.label,
+    required this.ratio,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (ratio * 100).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 13)),
+            Text(
+              '$pct%',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 10,
+            backgroundColor: Colors.grey.shade200,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
     );
   }
 }

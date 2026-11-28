@@ -32,6 +32,8 @@ class RoomPracticeTab extends ConsumerStatefulWidget {
 
 class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
   PersonalPracticeSummary? _personalSummary;
+  Map<String, double> _myQuizScores = {};
+  Map<String, ({int remembered, int total})> _flashcardProgress = {};
   bool _isLoadingSummary = false;
 
   @override
@@ -55,9 +57,17 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
     setState(() => _isLoadingSummary = true);
     final service = ref.read(practiceServiceProvider);
     final summary = await service.fetchPersonalSummary(uid);
+    final scores = await service.fetchUserQuizScores(uid);
+    final publishedSets = await service.fetchPublishedSets(widget.roomId);
+    final fcSetIds =
+        publishedSets.where((s) => s.isFlashcard).map((s) => s.id).toList();
+    final fcProgress =
+        await service.fetchUserFlashcardProgressBySet(uid, fcSetIds);
     if (mounted) {
       setState(() {
         _personalSummary = summary;
+        _myQuizScores = scores;
+        _flashcardProgress = fcProgress;
         _isLoadingSummary = false;
       });
     }
@@ -315,16 +325,36 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
                             children: [
                               _SummaryItem(
                                 label: 'Quiz đã làm',
-                                value: '${_personalSummary!.totalQuizzesTaken}',
+                                value: () {
+                                  final sets = setsAsync.value ?? [];
+                                  final quizzes =
+                                      sets.where((s) => s.isQuiz).toList();
+                                  final done = quizzes
+                                      .where((q) =>
+                                          _myQuizScores.containsKey(q.id))
+                                      .length;
+                                  return '$done/${quizzes.length}';
+                                }(),
                               ),
                               _SummaryItem(
                                 label: 'Điểm TB Quiz',
                                 value: '${_personalSummary!.averageScore}',
                               ),
                               _SummaryItem(
-                                label: 'Flashcard thuộc',
-                                value:
-                                    '${_personalSummary!.rememberedFlashcards}/${_personalSummary!.totalFlashcardsStudied}',
+                                label: 'Bộ thẻ thuộc',
+                                value: () {
+                                  final sets = setsAsync.value ?? [];
+                                  final fcs = sets
+                                      .where((s) => s.isFlashcard)
+                                      .toList();
+                                  final mastered = fcs.where((f) {
+                                    final p = _flashcardProgress[f.id];
+                                    return p != null &&
+                                        p.total > 0 &&
+                                        p.remembered >= p.total;
+                                  }).length;
+                                  return '$mastered/${fcs.length}';
+                                }(),
                               ),
                             ],
                           ),
@@ -525,36 +555,41 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
             color: isQuiz ? Colors.deepPurple.shade900 : Colors.blue.shade900,
           ),
         ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                set.title,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isDraft ? Colors.amber.shade100 : Colors.green.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                isDraft ? 'Bản nháp' : 'Đã phát hành',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isDraft
-                      ? Colors.amber.shade900
-                      : Colors.green.shade800,
+        title: Text(
+          set.title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDraft ? Colors.amber.shade100 : Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isDraft ? 'Bản nháp' : 'Đã phát hành',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDraft
+                        ? Colors.amber.shade900
+                        : Colors.green.shade800,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        subtitle: Text(
-          '${isQuiz ? "Quiz" : "Flashcard"} • Độ khó: ${set.difficulty.toUpperCase()}'
-          '${set.topic != null ? ' • Chủ đề: ${set.topic}' : ''}',
+              Text(
+                '${isQuiz ? "Quiz" : "Flashcard"} • ${set.difficulty.toUpperCase()}'
+                '${set.topic != null ? ' • ${set.topic}' : ''}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -588,6 +623,39 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
   }
 
   Widget _buildSetCard(GeneratedSet set, {required bool isQuiz}) {
+    final myScore = isQuiz ? _myQuizScores[set.id] : null;
+    final fcProg = !isQuiz ? _flashcardProgress[set.id] : null;
+    final fcPct = (fcProg != null && fcProg.total > 0)
+        ? ((fcProg.remembered / fcProg.total) * 100).round()
+        : 0;
+
+    late final String badgeText;
+    late final Color badgeBg;
+    late final Color badgeFg;
+    if (isQuiz) {
+      if (myScore != null) {
+        badgeText = 'Điểm: ${myScore.toStringAsFixed(1)}/10';
+        badgeBg = Colors.green.shade100;
+        badgeFg = Colors.green.shade800;
+      } else {
+        badgeText = 'Chưa làm';
+        badgeBg = Colors.grey.shade200;
+        badgeFg = Colors.grey.shade700;
+      }
+    } else {
+      if (fcProg != null && fcProg.remembered > 0 && fcProg.total > 0) {
+        badgeText = 'Đã thuộc $fcPct%';
+        badgeBg =
+            fcPct >= 100 ? Colors.green.shade100 : Colors.blue.shade100;
+        badgeFg =
+            fcPct >= 100 ? Colors.green.shade800 : Colors.blue.shade800;
+      } else {
+        badgeText = 'Chưa học';
+        badgeBg = Colors.grey.shade200;
+        badgeFg = Colors.grey.shade700;
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
@@ -600,33 +668,45 @@ class _RoomPracticeTabState extends ConsumerState<RoomPracticeTab> {
             color: isQuiz ? Colors.deepPurple.shade900 : Colors.blue.shade900,
           ),
         ),
-        title: Text(
-          set.title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                set.title,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: badgeBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: badgeFg,
+                ),
+              ),
+            ),
+          ],
         ),
         subtitle: Text(
           'Độ khó: ${set.difficulty.toUpperCase()} ${set.topic != null ? '• Chủ đề: ${set.topic}' : ''}',
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isQuiz)
-              IconButton(
-                tooltip: 'Thống kê kết quả phòng',
-                icon: const Icon(Icons.bar_chart, color: Colors.orange),
-                onPressed: () => _openAnalytics(set),
-              ),
-            FilledButton.tonal(
-              onPressed: () {
-                if (isQuiz) {
-                  _openQuiz(set);
-                } else {
-                  _openFlashcards(set);
-                }
-              },
-              child: Text(isQuiz ? 'Làm bài' : 'Học thẻ'),
-            ),
-          ],
+        trailing: FilledButton.tonal(
+          onPressed: () {
+            if (isQuiz) {
+              _openQuiz(set);
+            } else {
+              _openFlashcards(set);
+            }
+          },
+          child: Text(
+            isQuiz ? (myScore != null ? 'Làm lại' : 'Làm bài') : 'Học thẻ',
+          ),
         ),
       ),
     );

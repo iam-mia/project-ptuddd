@@ -17,7 +17,7 @@ class GeminiSchemaHelper {
       return 'Vui lòng chọn ít nhất 1 tài liệu để tạo nội dung.';
     }
     if (documentIds.length > maxDocuments) {
-      return 'Chỉ được chọn tối đa $maxDocuments tài liệu mỗi lần (BR-04).';
+      return 'Chỉ được chọn tối đa $maxDocuments tài liệu mỗi lần.';
     }
     return null;
   }
