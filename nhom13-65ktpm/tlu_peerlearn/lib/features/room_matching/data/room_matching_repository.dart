@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../notifications/services/notification_service.dart';
+
 import '../../../core/supabase/supabase_provider.dart';
 import '../../auth_profile/domain/program_registration.dart';
 import '../domain/compatibility_match.dart';
@@ -264,6 +266,13 @@ class RoomMatchingRepository {
       'user_id': userId,
       'role': 'mentee',
     }, onConflict: 'room_id,user_id');
+    await NotificationService().createNotification(
+      userId: room.mentorId,
+      title: 'Học viên mới tham gia phòng',
+      body: 'Có học viên vừa tham gia phòng "${room.name}" bằng mã phòng.',
+      type: 'joined',
+      roomId: room.id,
+    );
     return room;
   }
 
@@ -278,6 +287,13 @@ class RoomMatchingRepository {
       'receiver_id': receiverId,
       'type': 'invite',
     });
+    await NotificationService().createNotification(
+      userId: receiverId,
+      title: 'Lời mời tham gia phòng học',
+      body: 'Bạn nhận được lời mời tham gia phòng học mới từ Mentor.',
+      type: 'invitation',
+      roomId: roomId,
+    );
   }
 
   Future<void> requestToJoin({
@@ -334,6 +350,22 @@ class RoomMatchingRepository {
       'user_id': menteeId,
       'role': 'mentee',
     }, onConflict: 'room_id,user_id');
+    final roomId = response['room_id'] as String?;
+    final senderId = response['sender_id'] as String?;
+    if (senderId != null) {
+      final isRequest = response['type'] == 'request';
+      await NotificationService().createNotification(
+        userId: senderId,
+        title: isRequest
+            ? 'Yêu cầu tham gia được chấp nhận'
+            : 'Mentee đã chấp nhận lời mời',
+        body: isRequest
+            ? 'Mentor đã duyệt yêu cầu tham gia phòng học của bạn.'
+            : 'Một học viên đã chấp nhận lời mời tham gia phòng học.',
+        type: 'accepted',
+        roomId: roomId,
+      );
+    }
   }
 
   String _generateRoomCode() {

@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
+import 'features/notifications/services/notification_service.dart';
 import 'router/app_router.dart';
 
 Future<void> main() async {
@@ -23,6 +24,8 @@ Future<void> main() async {
       publishableKey: supabaseAnonKey,
     );
   }
+
+  await NotificationService.initialize();
 
   runApp(
     const ProviderScope(
