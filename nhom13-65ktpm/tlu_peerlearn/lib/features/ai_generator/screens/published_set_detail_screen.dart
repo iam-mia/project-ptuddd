@@ -89,7 +89,7 @@ class _PublishedSetDetailScreenState extends State<PublishedSetDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Phiên bản: v${widget.set.version} (BR-07)',
+                      'Phiên bản: v${widget.set.version}',
                       style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                     ),
                   ],

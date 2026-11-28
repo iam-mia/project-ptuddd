@@ -12,7 +12,9 @@ import '../widgets/document_upload_dialog.dart';
 import 'document_preview_screen.dart';
 import '../../ai_generator/screens/ai_draft_review_screen.dart';
 import '../../ai_generator/screens/generate_content_dialog.dart';
+import '../../ai_generator/screens/room_learning_content_screen.dart';
 import '../../ai_generator/services/ai_generator_service.dart';
+import '../../practice_stats/services/practice_service.dart';
 
 class RoomDocumentsTab extends ConsumerStatefulWidget {
   final String roomId;
@@ -125,6 +127,8 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
             documentIds: documentIds,
             documentContext: contextText,
           );
+          ref.invalidate(roomGeneratedSetsProvider(widget.roomId));
+          ref.invalidate(roomPublishedSetsProvider(widget.roomId));
         },
       ),
     );
@@ -139,10 +143,14 @@ class _RoomDocumentsTabState extends ConsumerState<RoomDocumentsTab> {
             quizQuestions: result.questions,
             onPublish: () async {
               await service.publishSet(result.set.id);
+              ref.invalidate(roomGeneratedSetsProvider(widget.roomId));
+              ref.invalidate(roomPublishedSetsProvider(widget.roomId));
             },
           ),
         ),
       );
+      ref.invalidate(roomGeneratedSetsProvider(widget.roomId));
+      ref.invalidate(roomPublishedSetsProvider(widget.roomId));
     }
   }
 

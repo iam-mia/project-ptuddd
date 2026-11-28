@@ -222,7 +222,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Yêu cầu: Ảnh định dạng JPG/PNG, dung lượng < 500KB (BR-04).',
+              'Yêu cầu: Ảnh định dạng JPG/PNG, dung lượng < 500KB.',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 14),
