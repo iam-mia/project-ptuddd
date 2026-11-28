@@ -1,3 +1,6 @@
+
+
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,8 +18,83 @@ class RoomMatchingScreen extends ConsumerStatefulWidget {
   const RoomMatchingScreen({super.key});
 
   @override
-  ConsumerState<RoomMatchingScreen> createState() =>
-      _RoomMatchingScreenState();
+  ConsumerState<RoomMatchingScreen> createState() => _RoomMatchingScreenState();
+}
+
+class _LoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _LoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, size: 36),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MatchScore extends StatelessWidget {
+  final String label;
+  final double score;
+  final IconData icon;
+
+  const _MatchScore({
+    required this.label,
+    required this.score,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeScore = score.isFinite ? score.clamp(0.0, 1.0) : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        children: [
+          Icon(icon, size: 15),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 76,
+            child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          Expanded(
+            child: LinearProgressIndicator(
+              value: safeScore,
+              minHeight: 5,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 34,
+            child: Text(
+              '${(safeScore * 100).round()}%',
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
@@ -24,6 +102,8 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
   Future<List<CompatibilityMatch>>? _matchesFuture;
   bool _isCreatingRoom = false;
   bool _isJoiningRoom = false;
+  final Set<String> _workingMatchIds = {};
+  final Set<String> _respondingInvitationIds = {};
 
   ProgramRegistration? _selectedRegistration(
     List<ProgramRegistration> registrations,
@@ -43,28 +123,77 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     });
   }
 
+  Future<void> _refreshMatches(ProgramRegistration registration) async {
+    final future = ref
+        .read(roomMatchingRepositoryProvider)
+        .getMatches(current: registration);
+    setState(() {
+      _selectedRegistrationId = registration.id;
+      _matchesFuture = future;
+    });
+    try {
+      await future;
+    } catch (_) {
+      // FutureBuilder displays the failure state.
+    }
+  }
+
+  Future<void> _refreshInvitations(String userId) async {
+    ref.invalidate(myInvitationsProvider(userId));
+    try {
+      await ref.read(myInvitationsProvider(userId).future);
+    } catch (_) {
+      // The provider exposes the error state in the tab.
+    }
+  }
+
+  Future<void> _refreshRooms(String userId) async {
+    ref.invalidate(myRoomsProvider(userId));
+    try {
+      await ref.read(myRoomsProvider(userId).future);
+    } catch (_) {
+      // The provider exposes the error state in the tab.
+    }
+  }
+
   Future<void> _createRoom(
     String mentorId,
     ProgramRegistration registration,
   ) async {
     final name = TextEditingController();
     final description = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Tạo phòng học'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Tên phòng'),
-            ),
-            TextField(
-              controller: description,
-              decoration: const InputDecoration(labelText: 'Mô tả'),
-            ),
-          ],
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: name,
+                autofocus: true,
+                maxLength: 80,
+                decoration: const InputDecoration(
+                  labelText: 'Tên phòng',
+                  counterText: '',
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Vui lòng nhập tên phòng'
+                    : null,
+              ),
+              TextField(
+                controller: description,
+                maxLength: 300,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Mô tả (không bắt buộc)',
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -72,13 +201,22 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, true);
+              }
+            },
             child: const Text('Tạo'),
           ),
         ],
       ),
     );
     if (confirmed != true) {
+      name.dispose();
+      description.dispose();
+      return;
+    }
+    if (!mounted) {
       name.dispose();
       description.dispose();
       return;
@@ -91,13 +229,16 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     }
     setState(() => _isCreatingRoom = true);
     try {
-      final room = await ref.read(roomMatchingRepositoryProvider).createRoom(
+      final room = await ref
+          .read(roomMatchingRepositoryProvider)
+          .createRoom(
             courseId: registration.courseId,
             mentorId: mentorId,
             name: name.text,
             description: description.text,
           );
       ref.invalidate(myRoomsProvider(mentorId));
+      ref.invalidate(studyRoomProvider(room.id));
       if (mounted) _openRoom(room);
     } catch (error) {
       _showMessage('Không thể tạo phòng: $error');
@@ -131,7 +272,16 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
         ],
       ),
     );
-    if (confirmed != true || code.text.trim().isEmpty) {
+    if (confirmed != true) {
+      code.dispose();
+      return;
+    }
+    if (code.text.trim().isEmpty) {
+      code.dispose();
+      _showMessage('Nhập Room Code để tham gia phòng');
+      return;
+    }
+    if (!mounted) {
       code.dispose();
       return;
     }
@@ -141,6 +291,7 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
           .read(roomMatchingRepositoryProvider)
           .joinRoomByCode(roomCode: code.text, userId: userId);
       ref.invalidate(myRoomsProvider(userId));
+      ref.invalidate(roomMembersProvider(room.id));
       if (mounted) _openRoom(room);
     } catch (error) {
       _showMessage('Không thể tham gia phòng: $error');
@@ -156,6 +307,7 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     required CompatibilityMatch match,
   }) async {
     try {
+      setState(() => _workingMatchIds.add(match.userId));
       final repository = ref.read(roomMatchingRepositoryProvider);
       final rooms = current.role == 'mentor'
           ? await repository.getOpenRoomsForMentor(
@@ -178,12 +330,18 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
       final room = await showDialog<StudyRoom>(
         context: context,
         builder: (context) => SimpleDialog(
-          title: Text(current.role == 'mentor' ? 'Chọn phòng để mời' : 'Chọn phòng để xin tham gia'),
+          title: Text(
+            current.role == 'mentor'
+                ? 'Chọn phòng để mời'
+                : 'Chọn phòng để xin tham gia',
+          ),
           children: rooms
-              .map((room) => SimpleDialogOption(
-                    onPressed: () => Navigator.pop(context, room),
-                    child: Text(room.name),
-                  ))
+              .map(
+                (room) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, room),
+                  child: Text(room.name),
+                ),
+              )
               .toList(),
         ),
       );
@@ -197,10 +355,23 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
       } else {
         await repository.requestToJoin(roomId: room.id, menteeId: userId);
       }
-      _showMessage(current.role == 'mentor' ? 'Đã gửi lời mời' : 'Đã gửi yêu cầu tham gia');
+      _showMessage(
+        current.role == 'mentor' ? 'Đã gửi lời mời' : 'Đã gửi yêu cầu tham gia',
+      );
       ref.invalidate(myInvitationsProvider(userId));
     } catch (error) {
       _showMessage('Không thể gửi lời mời: $error');
+    } finally {
+      if (mounted) setState(() => _workingMatchIds.remove(match.userId));
+    }
+  }
+
+  Future<void> _copyRoomCode(String roomCode) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: roomCode));
+      _showMessage('Đã sao chép mã phòng');
+    } catch (error) {
+      _showMessage('Không thể sao chép mã phòng: $error');
     }
   }
 
@@ -255,16 +426,20 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
         ),
         body: profileAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text('Lỗi hồ sơ: $error')),
+          error: (error, _) => _LoadError(
+            message: 'Không thể tải hồ sơ: $error',
+            onRetry: () => ref.invalidate(currentProfileProvider),
+          ),
           data: (profile) {
             if (profile == null) {
               return const Center(child: Text('Vui lòng đăng nhập'));
             }
             return registrationsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (error, _) =>
-                  Center(child: Text('Lỗi đăng ký: $error')),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _LoadError(
+                message: 'Không thể tải đăng ký: $error',
+                onRetry: () => ref.invalidate(myRegistrationsProvider),
+              ),
               data: (registrations) => ResponsiveContainer(
                 maxWidth: 960,
                 padding: EdgeInsets.zero,
@@ -283,10 +458,7 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     );
   }
 
-  Widget _buildMatches(
-    String userId,
-    List<ProgramRegistration> registrations,
-  ) {
+  Widget _buildMatches(String userId, List<ProgramRegistration> registrations) {
     if (registrations.isEmpty) {
       return const Center(
         child: Text('Đăng ký học phần và vai trò để xem gợi ý kết nối'),
@@ -296,13 +468,18 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     _matchesFuture ??= ref
         .read(roomMatchingRepositoryProvider)
         .getMatches(current: registration);
-    final hasMentorRole = registrations.any((item) =>
-        item.courseId == registration.courseId && item.role == 'mentor');
-    final myRooms = ref.watch(myRoomsProvider(userId)).value ?? const <StudyRoom>[];
-    final alreadyInCourseRoom = registration.role == 'mentee' &&
+    final hasMentorRole = registrations.any(
+      (item) => item.courseId == registration.courseId && item.role == 'mentor',
+    );
+    final myRooms =
+        ref.watch(myRoomsProvider(userId)).value ?? const <StudyRoom>[];
+    final alreadyInCourseRoom =
+        registration.role == 'mentee' &&
         myRooms.any((r) => r.courseId == registration.courseId);
 
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: () => _refreshMatches(registration),
+      child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
         DropdownButtonFormField<String>(
@@ -322,6 +499,7 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
             );
           }).toList(),
           onChanged: (id) {
+            if (id == null) return;
             final next = registrations.firstWhere((item) => item.id == id);
             _loadMatches(next);
           },
@@ -345,8 +523,8 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
                     registration.role == 'mentor'
                         ? 'Vai trò của bạn: Mentor — Gợi ý Mentee phù hợp để mời vào phòng'
                         : alreadyInCourseRoom
-                            ? 'Bạn đã tham gia phòng học cho học phần này'
-                            : 'Vai trò của bạn: Mentee — Gợi ý Mentor phù hợp để xin vào phòng',
+                        ? 'Bạn đã tham gia phòng học cho học phần này'
+                        : 'Vai trò của bạn: Mentee — Gợi ý Mentor phù hợp để xin vào phòng',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -362,8 +540,14 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
               onPressed: _isCreatingRoom
                   ? null
                   : () => _createRoom(userId, registration),
-              icon: const Icon(Icons.add),
-              label: const Text('Tạo phòng'),
+              icon: _isCreatingRoom
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.add),
+              label: Text(_isCreatingRoom ? 'Đang tạo...' : 'Tạo phòng'),
             ),
           ),
         FutureBuilder<List<CompatibilityMatch>>(
@@ -376,7 +560,10 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
               );
             }
             if (snapshot.hasError) {
-              return Text('Lỗi tải gợi ý: ${snapshot.error}');
+              return _LoadError(
+                message: 'Không thể tải gợi ý: ${snapshot.error}',
+                onRetry: () => _refreshMatches(registration),
+              );
             }
             final matches = snapshot.data ?? const <CompatibilityMatch>[];
             if (matches.isEmpty) {
@@ -389,76 +576,132 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
             }
             return Column(
               children: matches
-                  .map((match) => Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Icon(
-                            match.role == 'mentor'
-                                ? Icons.school_outlined
-                                : Icons.person_outline,
-                          ),
-                        ),
-                        title: Text(match.fullName),
-                        subtitle: Text(
-                          '${match.role == 'mentor' ? 'Mentor' : 'Mentee'}'
-                          ' • Khung giờ trùng: ${(match.timeScore * 100).round()}%',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                  .map(
+                    (match) => Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Phù hợp ${match.percentage}%',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            if (alreadyInCourseRoom) ...[
-                              if (myRooms.any((r) =>
-                                  r.courseId == registration.courseId &&
-                                  r.mentorId == match.userId))
-                                const Tooltip(
-                                  message:
-                                      'Bạn đã tham gia phòng học của Mentor này',
+                            Row(
+                              children: [
+                                CircleAvatar(
                                   child: Icon(
+                                    match.role == 'mentor'
+                                        ? Icons.school_outlined
+                                        : Icons.person_outline,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        match.fullName,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
+                                      ),
+                                      Text(
+                                        match.role == 'mentor'
+                                            ? 'Mentor'
+                                            : 'Mentee',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${match.percentage}% phù hợp',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _MatchScore(
+                              label: 'Thời gian',
+                              score: match.timeScore,
+                              icon: Icons.schedule,
+                            ),
+                            _MatchScore(
+                              label: 'Học thuật',
+                              score: match.academicScore,
+                              icon: Icons.school_outlined,
+                            ),
+                            _MatchScore(
+                              label: 'Sức chứa',
+                              score: match.capacityScore,
+                              icon: Icons.groups_outlined,
+                            ),
+                            const SizedBox(height: 8),
+                            if (alreadyInCourseRoom)
+                              const Align(
+                                alignment: Alignment.centerRight,
+                                child: Chip(
+                                  avatar: Icon(
                                     Icons.check_circle,
                                     color: Colors.green,
                                   ),
+                                  label: Text('Đã tham gia phòng học'),
                                 ),
-                            ] else
-                              IconButton(
-                                tooltip: registration.role == 'mentor'
-                                    ? 'Mời vào phòng'
-                                    : 'Xin tham gia phòng',
-                                icon: const Icon(Icons.send_outlined),
-                                onPressed: () => _sendInvitation(
-                                  userId: userId,
-                                  current: registration,
-                                  match: match,
+                              )
+                            else
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: FilledButton.tonalIcon(
+                                  onPressed: _workingMatchIds
+                                          .contains(match.userId)
+                                      ? null
+                                      : () => _sendInvitation(
+                                          userId: userId,
+                                          current: registration,
+                                          match: match,
+                                        ),
+                                  icon: _workingMatchIds
+                                          .contains(match.userId)
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.send_outlined),
+                                  label: Text(
+                                    registration.role == 'mentor'
+                                        ? 'Mời vào phòng'
+                                        : 'Xin tham gia phòng',
+                                  ),
                                 ),
                               ),
                           ],
                         ),
                       ),
-                      ))
+                    ),
+                  )
                   .toList(),
             );
           },
         ),
       ],
+      ),
     );
   }
 
@@ -466,14 +709,23 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     final invitationAsync = ref.watch(myInvitationsProvider(userId));
     return invitationAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Lỗi tải lời mời: $error')),
+      error: (error, _) => _LoadError(
+        message: 'Không thể tải lời mời: $error',
+        onRetry: () => _refreshInvitations(userId),
+      ),
       data: (invitations) {
-        if (invitations.isEmpty) {
-          return const Center(child: Text('Chưa có lời mời nào'));
-        }
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: invitations.map((invitation) {
+        return RefreshIndicator(
+          onRefresh: () => _refreshInvitations(userId),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: invitations.isEmpty
+                ? const [
+                    SizedBox(
+                      height: 240,
+                      child: Center(child: Text('Chưa có lời mời nào')),
+                    ),
+                  ]
+                : invitations.map((invitation) {
             final isIncoming = invitation.receiverId == userId;
             final pending = invitation.status == 'pending';
             final statusLabel = switch (invitation.status) {
@@ -495,12 +747,27 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
                         children: [
                           IconButton(
                             tooltip: 'Từ chối',
-                            onPressed: () => _respond(userId, invitation, false),
-                            icon: const Icon(Icons.close),
+                            onPressed: _respondingInvitationIds
+                                    .contains(invitation.id)
+                                ? null
+                                : () => _respond(userId, invitation, false),
+                            icon: _respondingInvitationIds
+                                    .contains(invitation.id)
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.close),
                           ),
                           IconButton(
                             tooltip: 'Chấp nhận',
-                            onPressed: () => _respond(userId, invitation, true),
+                            onPressed: _respondingInvitationIds
+                                    .contains(invitation.id)
+                                ? null
+                                : () => _respond(userId, invitation, true),
                             icon: const Icon(Icons.check),
                           ),
                         ],
@@ -508,7 +775,8 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
                     : null,
               ),
             );
-          }).toList(),
+                }).toList(),
+          ),
         );
       },
     );
@@ -519,9 +787,13 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     RoomInvitation invitation,
     bool accept,
   ) async {
+    setState(() => _respondingInvitationIds.add(invitation.id));
     try {
-      await ref.read(roomMatchingRepositoryProvider).respondToInvitation(
+      await ref
+          .read(roomMatchingRepositoryProvider)
+          .respondToInvitation(
             invitationId: invitation.id,
+            responderId: userId,
             accept: accept,
           );
       ref.invalidate(myInvitationsProvider(userId));
@@ -529,6 +801,10 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
       _showMessage(accept ? 'Đã chấp nhận lời mời' : 'Đã từ chối lời mời');
     } catch (error) {
       _showMessage('Không thể xử lý lời mời: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _respondingInvitationIds.remove(invitation.id));
+      }
     }
   }
 
@@ -536,25 +812,46 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
     final roomsAsync = ref.watch(myRoomsProvider(userId));
     return roomsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Lỗi tải phòng học: $error')),
+      error: (error, _) => _LoadError(
+        message: 'Không thể tải phòng học: $error',
+        onRetry: () => _refreshRooms(userId),
+      ),
       data: (rooms) {
-        if (rooms.isEmpty) {
-          return const Center(child: Text('Bạn chưa tham gia phòng học nào'));
-        }
         return RefreshIndicator(
-          onRefresh: () async => ref.invalidate(myRoomsProvider(userId)),
+          onRefresh: () => _refreshRooms(userId),
           child: ListView(
             padding: const EdgeInsets.all(16),
-            children: rooms
-                .map((room) => Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.meeting_room_outlined),
-                        title: Text(room.name),
-                        subtitle: Text('Mã phòng: ${room.roomCode}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openRoom(room),
+            children: rooms.isEmpty
+                ? const [
+                    SizedBox(
+                      height: 240,
+                      child: Center(
+                        child: Text('Bạn chưa tham gia phòng học nào'),
                       ),
-                    ))
+                    ),
+                  ]
+                : rooms
+                .map(
+                  (room) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.meeting_room_outlined),
+                      title: Text(room.name),
+                      subtitle: Text('Mã phòng: ${room.roomCode}'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Sao chép Room Code',
+                            icon: const Icon(Icons.copy),
+                            onPressed: () => _copyRoomCode(room.roomCode),
+                          ),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      onTap: () => _openRoom(room),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         );
