@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/widgets/responsive_container.dart';
 import '../../auth_profile/data/auth_repository.dart';
@@ -21,6 +22,7 @@ class RoomMatchingScreen extends ConsumerStatefulWidget {
 
 class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
   String? _selectedRegistrationId;
+  final Map<String, Color> _roomColors = {};
   Future<List<CompatibilityMatch>>? _matchesFuture;
   bool _isCreatingRoom = false;
   bool _isJoiningRoom = false;
@@ -49,33 +51,104 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
   ) async {
     final name = TextEditingController();
     final description = TextEditingController();
+    Color selectedColor = const Color(0xFF1976D2);
+    final palette = [
+      const Color(0xFF1976D2),
+      const Color(0xFF3949AB),
+      const Color(0xFF00897B),
+      const Color(0xFF2E7D32),
+      const Color(0xFFEF6C00),
+      const Color(0xFF7B1FA2),
+    ];
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tạo phòng học'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Tên phòng'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: selectedColor.withValues(alpha: 0.15),
+                child: Icon(Icons.add_home_work_outlined, color: selectedColor),
+              ),
+              const SizedBox(width: 10),
+              const Text('Tạo phòng học', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(
+                    labelText: 'Tên phòng',
+                    hintText: 'VD: Nhóm Ôn Tập 01',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: description,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Mô tả',
+                    hintText: 'Mục tiêu học tập, lịch dự kiến...',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Chọn màu badge phòng',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  children: palette.map((c) {
+                    final isSelected = c == selectedColor;
+                    return InkWell(
+                      onTap: () => setDialogState(() => selectedColor = c),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: isSelected
+                              ? Border.all(color: Colors.black87, width: 2.5)
+                              : null,
+                        ),
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              )
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-            TextField(
-              controller: description,
-              decoration: const InputDecoration(labelText: 'Mô tả'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: selectedColor),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Tạo phòng'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Tạo'),
-          ),
-        ],
       ),
     );
     if (confirmed != true) {
@@ -177,14 +250,64 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
       if (!mounted) return;
       final room = await showDialog<StudyRoom>(
         context: context,
-        builder: (context) => SimpleDialog(
-          title: Text(current.role == 'mentor' ? 'Chọn phòng để mời' : 'Chọn phòng để xin tham gia'),
-          children: rooms
-              .map((room) => SimpleDialogOption(
-                    onPressed: () => Navigator.pop(context, room),
-                    child: Text(room.name),
-                  ))
-              .toList(),
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.meeting_room_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  current.role == 'mentor'
+                      ? 'Chọn phòng để mời'
+                      : 'Chọn phòng để xin tham gia',
+                  style: const TextStyle(fontSize: 17),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: rooms
+                  .map(
+                    (room) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
+                          child: Icon(
+                            Icons.groups_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        title: Text(
+                          room.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text('Mã phòng: ${room.roomCode}'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.pop(context, room),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng'),
+            ),
+          ],
         ),
       );
       if (room == null) return;
@@ -438,7 +561,35 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
                                     color: Colors.green,
                                   ),
                                 ),
-                            ] else
+                            ] else if ((ref
+                                        .watch(myInvitationsProvider(userId))
+                                        .value ??
+                                    const [])
+                                .any((inv) =>
+                                    inv.status == 'pending' &&
+                                    ((inv.senderId == userId &&
+                                            inv.receiverId == match.userId) ||
+                                        (inv.receiverId == userId &&
+                                            inv.senderId == match.userId))))
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'Đã gửi lời mời',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                ),
+                              )
+                            else
                               IconButton(
                                 tooltip: registration.role == 'mentor'
                                     ? 'Mời vào phòng'
@@ -471,25 +622,85 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
         if (invitations.isEmpty) {
           return const Center(child: Text('Chưa có lời mời nào'));
         }
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: invitations.map((invitation) {
-            final isIncoming = invitation.receiverId == userId;
-            final pending = invitation.status == 'pending';
-            final statusLabel = switch (invitation.status) {
-              'pending' => 'Đang chờ',
-              'accepted' => 'Đã chấp nhận',
-              'rejected' => 'Đã từ chối',
-              _ => invitation.status,
-            };
-            return Card(
-              child: ListTile(
-                title: Text(invitation.roomName ?? 'Phòng học'),
-                subtitle: Text(
-                  '${invitation.type == 'invite' ? 'Lời mời' : 'Yêu cầu tham gia'}'
-                  ' • ${isIncoming ? 'Đến' : 'Đã gửi'}'
-                  ' • $statusLabel',
-                ),
+        final userIds = invitations
+            .expand((i) => [i.senderId, i.receiverId])
+            .toSet()
+            .toList();
+        return FutureBuilder<Map<String, String>>(
+          future: _fetchProfileNames(userIds),
+          builder: (context, nameSnap) {
+            final names = nameSnap.data ?? const {};
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: invitations.map((invitation) {
+                final isIncoming = invitation.receiverId == userId;
+                final targetId =
+                    isIncoming ? invitation.senderId : invitation.receiverId;
+                final targetName = names[targetId] ?? 'Thành viên';
+                final pending = invitation.status == 'pending';
+                final statusLabel = switch (invitation.status) {
+                  'pending' => 'Đang chờ',
+                  'accepted' => 'Đã chấp nhận',
+                  'rejected' => 'Đã từ chối',
+                  _ => invitation.status,
+                };
+                final statusColor = switch (invitation.status) {
+                  'pending' => Colors.orange,
+                  'accepted' => Colors.green,
+                  'rejected' => Colors.red,
+                  _ => Colors.grey,
+                };
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: statusColor.withValues(alpha: 0.15),
+                      child: Icon(
+                        isIncoming
+                            ? Icons.move_to_inbox_outlined
+                            : Icons.send_outlined,
+                        color: statusColor,
+                      ),
+                    ),
+                    title: Text(
+                      invitation.roomName ?? 'Phòng học',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            '${isIncoming ? 'Từ' : 'Gửi tới'}: $targetName',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: statusColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 trailing: isIncoming && pending
                     ? Wrap(
                         children: [
@@ -509,6 +720,8 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
               ),
             );
           }).toList(),
+        );
+          },
         );
       },
     );
@@ -546,19 +759,87 @@ class _RoomMatchingScreenState extends ConsumerState<RoomMatchingScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: rooms
-                .map((room) => Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.meeting_room_outlined),
-                        title: Text(room.name),
-                        subtitle: Text('Mã phòng: ${room.roomCode}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openRoom(room),
+                .map((room) {
+                  const palette = [
+                    Color(0xFF1976D2),
+                    Color(0xFF3949AB),
+                    Color(0xFF00897B),
+                    Color(0xFF2E7D32),
+                    Color(0xFFEF6C00),
+                    Color(0xFF7B1FA2),
+                  ];
+                  final roomColor = _roomColors[room.id] ??
+                      palette[room.id.hashCode.abs() % palette.length];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: roomColor.withValues(alpha: 0.15),
+                        child: Icon(
+                          Icons.meeting_room_outlined,
+                          color: roomColor,
+                        ),
                       ),
-                    ))
+                      title: Text(
+                        room.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: roomColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Mã phòng: ${room.roomCode}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: roomColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _openRoom(room),
+                    ),
+                  );
+                })
                 .toList(),
           ),
         );
       },
     );
   }
+}
+
+Future<Map<String, String>> _fetchProfileNames(List<String> userIds) async {
+  if (userIds.isEmpty) return {};
+  final Map<String, String> names = {};
+  for (final table in ['ck_profiles', 'profiles']) {
+    try {
+      final rows = await Supabase.instance.client
+          .from(table)
+          .select('id, full_name')
+          .inFilter('id', userIds);
+      for (final r in rows as List<dynamic>) {
+        final id = r['id'] as String?;
+        final name = r['full_name'] as String?;
+        if (id != null && name != null && name.isNotEmpty) {
+          names[id] = name;
+        }
+      }
+      if (names.isNotEmpty) break;
+    } catch (_) {}
+  }
+  return names;
 }

@@ -29,6 +29,7 @@ class QuizAnalyticsScreen extends ConsumerStatefulWidget {
 class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
   QuizAnalyticsSummary? _summary;
   Map<String, String> _userNames = {};
+  int _totalRoomMentees = 0;
   bool _isLoading = true;
 
   @override
@@ -52,25 +53,39 @@ class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
     final Map<String, String> names = {};
     final userIds = summary.recentAttempts.map((a) => a.userId).toSet().toList();
     if (userIds.isNotEmpty) {
-      try {
-        final rows = await Supabase.instance.client
-            .from('profiles')
-            .select('id, full_name')
-            .inFilter('id', userIds);
-        for (final r in rows as List<dynamic>) {
-          final id = r['id'] as String?;
-          final name = r['full_name'] as String?;
-          if (id != null && name != null && name.isNotEmpty) {
-            names[id] = name;
+      for (final table in ['ck_profiles', 'profiles']) {
+        try {
+          final rows = await Supabase.instance.client
+              .from(table)
+              .select('id, full_name')
+              .inFilter('id', userIds);
+          for (final r in rows as List<dynamic>) {
+            final id = r['id'] as String?;
+            final name = r['full_name'] as String?;
+            if (id != null && name != null && name.isNotEmpty) {
+              names[id] = name;
+            }
           }
-        }
-      } catch (_) {}
+          if (names.isNotEmpty) break;
+        } catch (_) {}
+      }
     }
+
+    int totalMentees = 0;
+    try {
+      final members = await Supabase.instance.client
+          .from('ck_room_members')
+          .select('user_id')
+          .eq('room_id', widget.generatedSet.roomId)
+          .neq('role', 'mentor');
+      totalMentees = (members as List<dynamic>).length;
+    } catch (_) {}
 
     if (mounted) {
       setState(() {
         _summary = summary;
         _userNames = names;
+        _totalRoomMentees = totalMentees;
         _isLoading = false;
       });
     }
@@ -137,66 +152,113 @@ class _QuizAnalyticsScreenState extends ConsumerState<QuizAnalyticsScreen> {
 
               const SizedBox(height: 24),
 
-              // Score distribution chart
+              // Score distribution chart & latest attempt per student
               if (summary.recentAttempts.isNotEmpty) ...[
-                Text(
-                  'Phân bố mức điểm',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                _ScoreDistributionCard(attempts: summary.recentAttempts),
-                const SizedBox(height: 24),
+                Builder(
+                  builder: (context) {
+                    // Keep only the latest attempt per student
+                    final Map<String, QuizAttempt> latestByUser = {};
+                    for (final a in summary.recentAttempts) {
+                      latestByUser.putIfAbsent(a.userId, () => a);
+                    }
+                    final latestAttempts = latestByUser.values.toList();
+                    final doneCount = latestAttempts.length;
+                    final menteeLabel = _totalRoomMentees > 0
+                        ? '$doneCount/$_totalRoomMentees mentee đã làm'
+                        : '$doneCount học viên đã làm';
 
-                Text(
-                  'Điểm chi tiết từng học viên (${summary.recentAttempts.length} lượt nộp)',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  child: Column(
-                    children: summary.recentAttempts.map((a) {
-                      final color = a.score >= 8.0
-                          ? Colors.green
-                          : (a.score >= 5.0 ? Colors.orange : Colors.red);
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: color.withValues(alpha: 0.15),
-                          child: Icon(Icons.person_outline, color: color),
-                        ),
-                        title: Text(
-                          _userNames[a.userId] ?? 'Học viên',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          'Nộp lúc: ${a.submittedAt.hour.toString().padLeft(2, '0')}:${a.submittedAt.minute.toString().padLeft(2, '0')} ${a.submittedAt.day}/${a.submittedAt.month}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${a.score.toStringAsFixed(1)}/10',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: color,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Phân bố mức điểm',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                menteeLabel,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _ScoreDistributionCard(attempts: latestAttempts),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Điểm sau cùng của từng học viên ($doneCount)',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Card(
+                          child: Column(
+                            children: latestAttempts.map((a) {
+                              final color = a.score >= 8.0
+                                  ? Colors.green
+                                  : (a.score >= 5.0
+                                      ? Colors.orange
+                                      : Colors.red);
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                      color.withValues(alpha: 0.15),
+                                  child: Icon(Icons.person_outline,
+                                      color: color),
+                                ),
+                                title: Text(
+                                  _userNames[a.userId] ?? 'Học viên',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                subtitle: Text(
+                                  'Nộp lúc: ${a.submittedAt.hour.toString().padLeft(2, '0')}:${a.submittedAt.minute.toString().padLeft(2, '0')} ${a.submittedAt.day}/${a.submittedAt.month}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${a.score.toStringAsFixed(1)}/10',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: color,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
               ],
